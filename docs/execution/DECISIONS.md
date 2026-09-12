@@ -120,6 +120,18 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: user repository-management instructions; SafeSpend GitHub API inspection (empty, 0 commits).
 - Revisit condition: if the user designates a different repository or requests a different branch name.
 
+## D13 — Audit correction: decouple earliest-date/status and safety/deadline
+- Date: 2026-09-13
+- Decision: (a) `earliest_date_for_full_payment = request_date` is treated as a **one-directional** implication of `affordable_now`, never as an equivalence — earliest reflects raw financial capacity independent of payment-method preferences (sample request_12). (b) Financial *safety* is defined solely by the minimum-balance / cash-flow rules over the forecast horizon; `desired_completion_date` is a separate plan-eligibility / ranking constraint and is never folded into the safety computation for asp or earliest-date.
+- Status: DECIDED
+- Context: Phase 0/0.5 audit found docs/07 stated an incorrect `earliest = request_date iff affordable_now` invariant, and docs/00/01 phrased safety as including completion by the deadline.
+- Alternatives considered: keeping the biconditional as a validator (rejected — would reject valid rows like request_12's pattern); treating the deadline as a safety input (rejected — would corrupt asp/earliest computation).
+- Chosen approach: corrected docs/00 §Core objective, docs/01 §2/§3, docs/03 R17, docs/07 §3; Phase 1 validators will assert the one-directional form.
+- Why: matches the official wording ("measures financial capacity independently of the user's payment-method preferences") and the official ranking structure where the deadline is criterion 1 of plan choice.
+- Trade-offs: none.
+- Evidence/source: problem_statement.md "Allowed values"/"90-Day Safety Check"/"Choosing Between Safe Plans"; sample request_12; user audit instruction.
+- Revisit condition: only if official material changes.
+
 ## D11 — FX chain conversion fallback
 - Date: 2026-09-13
 - Decision: if no direct same-date rate row exists for an event's currency pair, compose a chain through an intermediate currency using same-date rows; if impossible, flag and treat financially safer.

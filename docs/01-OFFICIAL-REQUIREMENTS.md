@@ -45,7 +45,7 @@ request_id,amount_safe_to_pay,affordability_status,recommended_payment_method,pa
   - `not_affordable`: the full request cannot be completed safely within the forecast period.
 - `recommended_payment_method` — allowed values exactly: `full_payment`, `partial_payment`, `installments`, `wait`, `not_recommended`.
 - `payment_plan`: chronological `YYYY-MM-DD:amount` entries separated by `|` (example `2026-09-07:300|2026-10-07:300|2026-11-07:300`), or `none` when no payment is recommended. Installment plans must **exactly match a supplied payment option**.
-- `earliest_date_for_full_payment`: first conservative projected date for one safe full payment. Equals `request_date` for `affordable_now`; **empty** when no full payment is safe within the forecast period. It measures financial capacity **independently of the user's payment-method preferences** — it may equal `request_date` even when the recommendation is `installments`.
+- `earliest_date_for_full_payment`: first conservative projected date for one safe full payment. Equals `request_date` for `affordable_now`; **empty** when no full payment is safe within the forecast period. It measures financial capacity **independently of the user's payment-method preferences** — it may equal `request_date` even when the recommendation is `installments`. The implication is **one-directional**: `earliest = request_date` does **not** imply `affordable_now`, because `affordable_now` additionally requires the user to accept `full_payment` (sample request_12: full capacity on the request date, yet installments recommended).
 - `spending_changes_needed`: `none` or up to three `stop:<event_id>` / `reduce_to:<event_id>:<new_amount>` actions separated by `|` (example `stop:event_14|reduce_to:event_21:100`).
 - `decision_explanation`: concise, grounded explanation of the recommendation.
 
@@ -55,6 +55,7 @@ request_id,amount_safe_to_pay,affordability_status,recommended_payment_method,pa
 - A plan is safe only if the balance never falls below `minimum_balance_to_keep` after any projected essential expense or payment in the recommended plan. Source: problem_statement.md, AGENTS.md §6.3.
 - Ignore pending credits, failed or cancelled transactions, duplicate records, and unrealized investments in the forecast. Source: problem_statement.md "90-Day Safety Check".
 - The plan must complete the request by `desired_completion_date` and keep the user above the minimum balance throughout the 90-day forecast. Source: problem_statement.md.
+  **Concept separation (audit correction):** the deadline component here is a **plan-eligibility / ranking requirement** (ranking criterion 1; partial-payment condition `earliest_date_for_full_payment <= desired_completion_date`), not part of the financial-safety computation. Financial safety itself is the minimum-balance / cash-flow behavior over the forecast horizon; `amount_safe_to_pay` and `earliest_date_for_full_payment` are computed by that financial check alone, with no deadline involvement.
 - `amount_safe_to_pay` = the most the user can pay today before optional spending changes without breaking the 90-day safety check, capped at `requested_amount`. `earliest_date_for_full_payment` = the first date the full amount passes the safety check without optional spending changes. Source: problem_statement.md "90-Day Safety Check".
 
 ## 4. Payment rules

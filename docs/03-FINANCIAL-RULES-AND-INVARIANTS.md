@@ -36,6 +36,7 @@ presented as official.
 - R15. `0 <= amount_safe_to_pay <= requested_amount` always. Source: problem_statement.md.
 - R16. `amount_safe_to_pay` = max safe on `request_date` **before optional spending changes**, capped at `requested_amount`. Source: problem_statement.md "90-Day Safety Check".
 - R17. `earliest_date_for_full_payment` = first date the full amount passes the safety check **without** optional spending changes; = `request_date` for `affordable_now`; empty when never safe within the forecast. Source: problem_statement.md, AGENTS.md §6.2.
+  - **One-directional implication (audit correction):** `affordable_now ⇒ earliest = request_date`, but `earliest = request_date ⇏ affordable_now` — a user with full financial capacity today who does not accept `full_payment` receives an eligible alternative (e.g. installments). Evidence: sample request_12 (earliest = request_date, method = installments). See R18/R19.
 - R18. `earliest_date_for_full_payment` is measured **independently of payment-method preferences** (may equal request_date even when installments are recommended). Source: problem_statement.md "Allowed values".
 - R19. `affordability_status` values and meanings as in 01-OFFICIAL-REQUIREMENTS.md §2; `affordable_now` additionally requires the user accepts `full_payment`. Source: problem_statement.md.
 - R20. `affordable_with_plan` = full request completed via partial-payment schedule, installments, **or permitted spending changes**. Source: AGENTS.md §6.2.

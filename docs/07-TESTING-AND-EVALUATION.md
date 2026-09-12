@@ -27,9 +27,13 @@ constructed scenarios that force each recommendation type; validator rejects del
 corrupted outputs (each invariant individually violated).
 
 ### 3. Financial invariant tests
-Independent of plan generation: for every produced row assert R15–R17, R22, R23, R26–R33
+Independent of plan generation: for every produced row assert R15–R19, R22, R23, R26–R33
 (bounds, enum domains, chronological plans, option matching, two-payment sums, change
-eligibility, earliest= request_date iff affordable_now, empty-earliest iff never safe).
+eligibility, earliest-date semantics). Earliest-date invariants are **one-directional**:
+`earliest_date_for_full_payment = request_date` whenever status is `affordable_now`, but the
+converse does **not** hold — earliest may equal `request_date` for other statuses when the
+user rejects `full_payment` (official rule; sample request_12). Empty earliest is required
+iff the full amount is never safe within the forecast period.
 
 ### 4. Sample regression evaluation (the 25 solved rows = benchmark)
 `code/evaluation/evaluate_samples.py` runs the full pipeline on `sample_requests.csv`

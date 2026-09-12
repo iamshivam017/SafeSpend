@@ -23,10 +23,17 @@ Build an AI-powered financial decision agent. For every purchase/payment request
 **Core objective (official):** determine whether each requested expense can be completed
 *safely* — meaning every listed payment can be made, essential/protected expenses are
 covered, and the user's balance never falls below `minimum_balance_to_keep` at any point
-in a 90-day forward forecast — while completing the request by its
-`desired_completion_date`.
+in a 90-day forward forecast.
 
-Source: problem_statement.md ("A recommendation is safe only if…"), AGENTS.md §1.
+**Concept separation (audit correction):** financial *safety* is purely the
+minimum-balance / cash-flow behavior over the forecast horizon. `desired_completion_date`
+is a separate planning constraint applied through the official plan-eligibility and ranking
+rules (completing by the deadline is ranking criterion 1 and a partial-payment condition),
+not a component of the financial-safety computation used for `amount_safe_to_pay` or
+`earliest_date_for_full_payment`.
+
+Source: problem_statement.md ("A recommendation is safe only if…", "90-Day Safety Check",
+"Choosing Between Safe Plans"), AGENTS.md §1, §6.2–6.3.
 
 ## Simple explanation of the problem
 
