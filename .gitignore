@@ -1,0 +1,19 @@
+# Chat transcript (submission artifact, uploaded separately - per README)
+log.txt
+
+# Secrets
+.env
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Tooling
+.mimosa/
+
+# Generated artifacts (recreated by runs)
+code/evidence_cache.json
+code/evaluation/usage_raw.jsonl
