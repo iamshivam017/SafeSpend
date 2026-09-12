@@ -1,7 +1,9 @@
 # 04 — Architecture
 
-Status: PROPOSED. No module below exists yet unless the implementation roadmap has created it
-(see 09-IMPLEMENTATION-ROADMAP.md). This document describes the target design agreed in Phase 0.
+Status: Phase 1 implemented. The data-foundation layer now exists exactly as the file tree below shows
+(`io.py` was realized as `data_loader.py` + `parsing.py` per the Phase 1 directive — see DECISIONS D14).
+Components 3–9 (evidence, lifecycle, state, forecast, plans, ranker, explain) remain PROPOSED
+until their phases create them.
 
 ## Selected architecture
 

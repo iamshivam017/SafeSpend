@@ -17,7 +17,7 @@ Progress markers: `[ ]` not started, `[~]` in progress, `[x]` complete.
 - Deliverables: docs/00–09 + execution/DECISIONS.md; verification per completion gate.
 - Stop condition: stop and await approval before Phase 1.
 
-## PHASE 1 — Schemas, loaders, deterministic baseline, validation framework — `[ ]`
+## PHASE 1 — Schemas, loaders, deterministic baseline, validation framework — `[x]` (2026-09-13: 77 tests green, selfcheck 25/25, dataset diff-clean)
 - Objective: trustworthy data layer + contract enforcement skeleton.
 - Tasks: `io.py` (Decimal/date/enum parsing, `|`-list splitting); record types for all 9 files;
   `validators.py` output-contract checks; project README run instructions; `usage.py` skeleton;

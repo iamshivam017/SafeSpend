@@ -132,6 +132,54 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: problem_statement.md "Allowed values"/"90-Day Safety Check"/"Choosing Between Safe Plans"; sample request_12; user audit instruction.
 - Revisit condition: only if official material changes.
 
+## D14 — Package layout: `code/` package + repo-root `tests/`
+- Date: 2026-09-13
+- Decision: solution lives in the `code` package (`code/main.py` entry point per official convention); automated tests live in repo-root `tests/` with a `_bootstrap.py` sys.path shim.
+- Status: DECIDED
+- Context: Phase 1 directive proposed this layout; official README documents `python3 code/main.py` as the run command.
+- Alternatives considered: renaming the package to `safespend` (cleaner namespacing — `code` shadows the stdlib `code` module — but breaks the documented official entry point); `pytest` (adds a dependency; D15).
+- Chosen approach: keep `code` as the package name; our modules never import the stdlib `code` module, so the shadowing is inert; record the risk here.
+- Why: official run-command compatibility outweighs naming aesthetics.
+- Trade-offs: `import code` shadowing — monitored; if a future dependency imports stdlib `code`, revisit.
+- Evidence/source: README.md quick start; AGENTS.md §6.6.
+- Revisit condition: any dependency requiring stdlib `code`, or organizer push changing the entry-point convention.
+
+## D15 — Test runner: stdlib unittest (no pytest dependency)
+- Date: 2026-09-13
+- Decision: `python -m unittest discover -s tests -v`; tests are unittest classes (also pytest-compatible if pytest is present locally).
+- Status: DECIDED
+- Context: dependency discipline (Phase 1 §26): stdlib suffices for xAssert-style unit tests.
+- Alternatives considered: pytest (richer fixtures/assertions; not needed yet).
+- Chosen approach: unittest.
+- Why: zero dependencies, deterministic CI-free local runs under the hackathon deadline.
+- Trade-offs: less ergonomic fixtures; revisit only if test complexity demands it.
+- Evidence/source: engineering; user dependency rules.
+- Revisit condition: test suite complexity grows beyond unittest ergonomics.
+
+## D16 — Rounding policy: none applied; exact scale preserved (OPEN for Phase 3)
+- Date: 2026-09-13
+- Decision: parsers never round; parsed Decimal scale is preserved end-to-end ("100.50" stays 2 dp); all comparisons exact. Where ground truth might demand rounding (e.g. installment per-payment amounts are supplied pre-rounded by options — we adopt their exact values), no independent rounding is invented.
+- Status: OPEN (revisit when sample regression reveals whether hidden ground truth rounds asp or plan amounts)
+- Context: official materials specify no rounding rule.
+- Alternatives: ROUND_HALF_UP/EVEN at 2 dp (invented — rejected).
+- Chosen approach: exact preservation; sample regression will expose any rounding expectation.
+- Why: no silent invention of policy; wrong rounding would fail exact scoring either way.
+- Trade-offs: potential future mismatch with hidden ground truth; mitigation is the Phase 5 regression loop.
+- Evidence/source: problem_statement.md (silent on rounding); Phase 1 directive §6.
+- Revisit condition: Phase 5 sample regression evidence.
+
+## D17 — Loader strictness: exact header-set equality; fail-fast enums
+- Date: 2026-09-13
+- Decision: loaders require the exact expected header set (missing AND unexpected columns both raise); controlled-value fields parse via StrEnum with the observed official sets and raise on unknown values; benign surrounding whitespace in scalar fields is stripped before validation (documented, deterministic).
+- Status: DECIDED
+- Context: Phase 1 directive: fail-fast for structural data, surface unknown values clearly.
+- Alternatives: tolerant header subset matching (hides upstream schema changes); silent enum fallback (forbidden).
+- Chosen approach: strict.
+- Why: hidden eval data surprises must surface immediately, not corrupt predictions silently.
+- Trade-offs: an organizer-added column mid-event would fail loads until we update the header contract — acceptable (risk R23 covers detecting upstream changes; the error message names the exact column delta).
+- Evidence/source: Phase 1 directive §21, §8; user Phase 1 prompt.
+- Revisit condition: organizer dataset schema change (then extend header sets deliberately).
+
 ## D11 — FX chain conversion fallback
 - Date: 2026-09-13
 - Decision: if no direct same-date rate row exists for an event's currency pair, compose a chain through an intermediate currency using same-date rows; if impossible, flag and treat financially safer.
