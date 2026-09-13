@@ -8,9 +8,10 @@ runs. It must pass the relevant validation defined below.
 From the repository root:
 
 ```
-python -m unittest discover -s tests -v      # full suite (77 tests, stdlib unittest)
+python -m unittest discover -s tests -v      # full suite (157 tests, stdlib unittest)
 python code/main.py                          # foundation: load + indexes + structural checks
 python code/main.py --selfcheck              # 25-sample harness self-check (must be 25/25)
+python code/main.py --diagnose               # Phase 2 baseline simulation over 25 sample users
 ```
 
 No third-party test runner is required (DECISIONS D15). Layer 4 algorithm evaluation

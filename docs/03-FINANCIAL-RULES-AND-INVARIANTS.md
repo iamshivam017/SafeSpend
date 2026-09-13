@@ -90,7 +90,10 @@ presented as official.
 
 ## SECTION 3 — ENGINEERING INTERPRETATIONS
 (Our working decisions; each is validated against the 25-sample regression before use.
-Tracked in execution/DECISIONS.md.)
+Tracked in execution/DECISIONS.md. Phase 2 implemented E1 (D10/D18), E4 (D11: direct
+rates only, empirically sufficient), E5 (D6 resolved: debits-descending-first with
+per-debit floor checks), and added the balance-snapshot interpretation D19; E2/E3
+remain OPEN for Phase 3.)
 
 - E1. **Recurrence detection**: an event series repeats when the same user+category+direction shows regular periodic settlement history (e.g. monthly salary on the 15th); one-off spikes explicitly flagged by evidence (e.g. message_02 "one-time adjustment") are excluded from the projection. Recurring amounts use a conservative value from history (e.g. recent max/last), not an optimistic average.
 - E2. **`max_installment_months` semantics**: an option is allowed when its total span (`first_payment_date + (number_of_payments-1) × payment_frequency_days` minus request context) fits within `max_installment_months` months (approx. 30-day months). To be pinned by regression: user_02 (max 7) accepted a 3×30d option and the 18×31d option would be excluded under any reasonable reading.

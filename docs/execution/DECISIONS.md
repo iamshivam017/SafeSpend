@@ -66,17 +66,17 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: engineering; docs/08.
 - Revisit condition: if prompt iteration invalidates cache during Phase 4/5.
 
-## D6 — Event-ordering policy (same-day)
-- Date: 2026-09-13
-- Decision: within a simulation day, apply debits (incl. plan payments) before credits.
-- Status: DECIDED (validated in Phase 5)
-- Context: official conflict rule (4) "financially safer interpretation" when order is otherwise unspecified.
-- Alternatives: credits-first (optimistic, rejected), interleaved (undefined).
-- Chosen approach: debits-first.
-- Why: conservative floor enforcement.
-- Trade-offs: may understate same-day capacity; samples will confirm.
-- Evidence/source: problem_statement.md conflict rules; docs/03 §E5.
-- Revisit condition: if 25-sample regression shows credit-first behavior (STATUS: OPEN until pinned).
+## D6 — Event-ordering policy (same-day) — RESOLVED IN PHASE 2
+- Date: 2026-09-13 (resolved)
+- Decision: within a simulation day, apply ALL debits before credits; debits sorted by magnitude descending (largest first), credits ascending. The floor is checked after every debit and at end-of-day, so a same-day credit can never mask an intraday violation.
+- Status: DECIDED (implemented in code/finance/simulator.py::_apply_day; Phase 5 may calibrate only if sample evidence contradicts)
+- Context: official conflict rule (4) "financially safer interpretation"; official wording does not specify intra-day order.
+- Alternatives: credits-first (optimistic — lets same-day salary sanction unsafe spending, rejected); single net-daily delta (hides intraday violations, rejected).
+- Chosen approach: debits-descending-first with per-debit floor checks.
+- Why: the minimum-balance invariant must not be bypassed by sort order; matches directive sections 16/20 (a temporary violation stays a violation).
+- Trade-offs: most conservative same-day reading; may understate capacity if ground truth nets daily deltas — Phase 5 regression will expose this if real.
+- Evidence/source: problem_statement.md conflict rules; user Phase 2 directive sections 16/20.
+- Revisit condition: Phase 5 sample regression contradiction.
 
 ## D7 — Model / provider selection
 - Date: —
@@ -102,11 +102,37 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: sample_requests.csv rows 11/21.
 - Revisit condition: Phase 5 regression outcome.
 
-## D10 — Recurrence policy
-- Date: —
-- Decision: **STATUS: OPEN** (core approach decided, parameters not). Approach: periodicity detection on same user+category+direction settled history; one-time flags from evidence; conservative amount selection. Exact conservative rule (last vs max vs trimmed mean) pinned in Phase 5.
-- Evidence/source: official R9; observed message_02 one-time adjustment; user_03 salary history.
-- Revisit condition: Phase 5 regression outcome.
+## D10 — Recurrence policy — IMPLEMENTED IN PHASE 2
+- Date: 2026-09-13 (parameters fixed; calibration open)
+- Decision: gap-bucket cadence detection on settled history grouped by (user, category, direction, currency). Buckets: weekly 6-8d, biweekly 13-15d, monthly 28-31d (projected by day-of-month clamp), plus fixed custom gaps (7/10/14/21d observed) requiring near-exact consistency. A series is periodic iff >=3 observations AND the dominant bucket covers >=60% of gaps. Conservative amount: debits = MAX of last 3; credits = MEDIAN of last 3 (robust to one-off adjustments like user_03's 1,964,250 salary spike). Projections drop within +/-3 days of an actual same-category+direction cash record (actual outranks forecast). Category names are never evidence.
+- Status: DECIDED (parameters explicit in code/finance/recurrence.py::RecurrenceParams; Phase 5 may tune min_observations/fraction/window)
+- Alternatives: category-based assumption (forbidden by official R9); 2-observation minimum (too weak); minimum-amount for credits (over-penalized by one-offs, rejected); trailing-30-day provisioning for irregular essentials (deferred — no sample evidence yet).
+- Why: gap analysis of the real dataset showed crisp monthly (28-31d) and fixed sub-monthly (7/10/14/21d) cadences; majority-rule handles one-off spikes.
+- Trade-offs: irregular-but-essential spend (if ground truth projects it) is currently under-forecast; Phase 5 regression will reveal.
+- Evidence/source: official R9; user Phase 2 directive sections 9-11; dataset gap analysis.
+- Revisit condition: Phase 5 sample regression contradiction.
+
+## D18 — Conservative variable-essential amounts
+- Date: 2026-09-13
+- Decision: for a detected recurring DEBIT series, the projected amount is the MAX of the last 3 observations (over-reserve spending); for recurring CREDIT series, the MEDIAN of the last 3 (under-count income; robust to one-off adjustments). No provisioning is currently applied to irregular (non-periodic) essential categories.
+- Status: DECIDED (Phase 5 calibration subject)
+- Context: official "forecast essential variable spending conservatively" (AGENTS.md 6.3); the dataset shows fixed categories with constant amounts (rent/subscriptions/insurance) and variable essentials (utilities/groceries/dining) on strict cadences.
+- Alternatives considered: trailing-30-day category provisioning for irregular essentials (rejected for now — no sample evidence yet, over/under-reservation risk unquantified); overall historical max (over-reserves stale spikes); minimum (forbidden — not conservative).
+- Chosen approach: recent-window max (debits) / median (credits).
+- Why: simple, deterministic, bounded by real history; the median robustly excluded user_03's one-off 1,964,250 salary adjustment.
+- Trade-offs: if hidden ground truth provisions irregular essentials (groceries beyond their detected cadence), we under-reserve — Phase 5 regression will expose and recalibrate.
+- Evidence/source: AGENTS.md 6.3; user Phase 2 directive section 11; dataset amount analysis.
+- Revisit condition: Phase 5 calibration evidence.
+
+## D19 — Starting-balance snapshot interpretation
+- Date: 2026-09-13
+- Decision: `current_available_balance` is the balance AS OF request_date (day 0). Settled/scheduled events effective BEFORE request_date are already inside it and are never re-applied; only cash movements with effective date in [request_date, request_date+90] are applied. Historical blank-amount events are therefore out of scope (not UNRESOLVED).
+- Status: DECIDED (engineering interpretation — official wording says only "current available balance")
+- Alternatives: re-applying all settled history (double-counts); unknown snapshot date (unimplementable).
+- Why: the only reading consistent with "current" plus a 90-day forward forecast; validated by diagnostics (no double-count anomalies across the 25 sample users).
+- Trade-offs: if hidden ground truth uses a different snapshot convention, asp shifts — Phase 5 will expose.
+- Evidence/source: problem_statement.md; AGENTS.md 6.1; user Phase 2 directive sections 7/17.
+- Revisit condition: Phase 5 regression contradiction.
 
 ## D12 — Project GitHub repository and branch strategy
 - Date: 2026-09-13
@@ -126,7 +152,7 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Status: DECIDED
 - Context: Phase 0/0.5 audit found docs/07 stated an incorrect `earliest = request_date iff affordable_now` invariant, and docs/00/01 phrased safety as including completion by the deadline.
 - Alternatives considered: keeping the biconditional as a validator (rejected — would reject valid rows like request_12's pattern); treating the deadline as a safety input (rejected — would corrupt asp/earliest computation).
-- Chosen approach: corrected docs/00 §Core objective, docs/01 §2/§3, docs/03 R17, docs/07 §3; Phase 1 validators will assert the one-directional form.
+- Chosen approach: corrected docs/00, docs/01, docs/03 R17, docs/07; Phase 1 validators assert the one-directional form.
 - Why: matches the official wording ("measures financial capacity independently of the user's payment-method preferences") and the official ranking structure where the deadline is criterion 1 of plan choice.
 - Trade-offs: none.
 - Evidence/source: problem_statement.md "Allowed values"/"90-Day Safety Check"/"Choosing Between Safe Plans"; sample request_12; user audit instruction.
@@ -141,14 +167,14 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Chosen approach: keep `code` as the package name; our modules never import the stdlib `code` module, so the shadowing is inert; record the risk here.
 - Why: official run-command compatibility outweighs naming aesthetics.
 - Trade-offs: `import code` shadowing — monitored; if a future dependency imports stdlib `code`, revisit.
-- Evidence/source: README.md quick start; AGENTS.md §6.6.
+- Evidence/source: README.md quick start; AGENTS.md 6.6.
 - Revisit condition: any dependency requiring stdlib `code`, or organizer push changing the entry-point convention.
 
 ## D15 — Test runner: stdlib unittest (no pytest dependency)
 - Date: 2026-09-13
 - Decision: `python -m unittest discover -s tests -v`; tests are unittest classes (also pytest-compatible if pytest is present locally).
 - Status: DECIDED
-- Context: dependency discipline (Phase 1 §26): stdlib suffices for xAssert-style unit tests.
+- Context: dependency discipline: stdlib suffices for unit tests.
 - Alternatives considered: pytest (richer fixtures/assertions; not needed yet).
 - Chosen approach: unittest.
 - Why: zero dependencies, deterministic CI-free local runs under the hackathon deadline.
@@ -165,7 +191,7 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Chosen approach: exact preservation; sample regression will expose any rounding expectation.
 - Why: no silent invention of policy; wrong rounding would fail exact scoring either way.
 - Trade-offs: potential future mismatch with hidden ground truth; mitigation is the Phase 5 regression loop.
-- Evidence/source: problem_statement.md (silent on rounding); Phase 1 directive §6.
+- Evidence/source: problem_statement.md (silent on rounding); Phase 1 directive section 6.
 - Revisit condition: Phase 5 sample regression evidence.
 
 ## D17 — Loader strictness: exact header-set equality; fail-fast enums
@@ -177,17 +203,17 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Chosen approach: strict.
 - Why: hidden eval data surprises must surface immediately, not corrupt predictions silently.
 - Trade-offs: an organizer-added column mid-event would fail loads until we update the header contract — acceptable (risk R23 covers detecting upstream changes; the error message names the exact column delta).
-- Evidence/source: Phase 1 directive §21, §8; user Phase 1 prompt.
+- Evidence/source: Phase 1 directive sections 21/8; user Phase 1 prompt.
 - Revisit condition: organizer dataset schema change (then extend header sets deliberately).
 
-## D11 — FX chain conversion fallback
-- Date: 2026-09-13
-- Decision: if no direct same-date rate row exists for an event's currency pair, compose a chain through an intermediate currency using same-date rows; if impossible, flag and treat financially safer.
-- Status: DECIDED (mechanism; necessity confirmed during Phase 6 data audit)
-- Context: only 5 directional pairs exist; events occur in all 5 currencies for all home currencies.
-- Alternatives: drop such events (silently wrong), invent rates (forbidden).
-- Chosen approach: chain composition.
-- Why: official rule fixes rate *source* and *date*, not path; chaining stays within provided data.
-- Trade-offs: path choice ambiguity → prefer the chain minimizing hops then maximizing rate-date exactness.
-- Evidence/source: exchange_rates.csv pair census (docs/02); AGENTS.md §6.1.
-- Revisit condition: if sample regression reveals per-pair ground truth contradicting chains.
+## D11 — FX policy — RESOLVED IN PHASE 2: direct rates only
+- Date: 2026-09-13 (resolved)
+- Decision: convert using ONLY the direct same-date official rate row for the stated from->to direction (official rule). A missing rate raises MissingRateError with a clear diagnostic — no chaining, no inverse rates, no nearest-date borrowing, no invention.
+- Status: DECIDED (implemented in code/finance/currency.py)
+- Context: empirical proof over the full participant dataset (Phase 2): the only conversion pairs actually required are EUR->USD (16 events), EUR->ZAR (20), USD->EUR (22), USD->IDR (28), USD->INR (53) — ALL five have direct rate rows in exchange_rates.csv. Chaining is unnecessary for this dataset.
+- Alternatives: chain composition (unnecessary now; documented future option if organizers add data requiring it); inverse-rate math (rejected — not needed, not officially provided).
+- Why: simplest deterministic policy fully covering the real data; hard failure beats silent guessing.
+- Trade-offs: an organizer dataset update adding a pair without direct rates raises errors — visible immediately (risk R23), fixable deliberately.
+- Evidence/source: AGENTS.md section 6.1; exchange_rates.csv; Phase 2 empirical pair analysis.
+- Revisit condition: official dataset adds a conversion pair lacking a direct rate.
+
