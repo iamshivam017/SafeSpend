@@ -103,7 +103,9 @@ provisional; Phase 4 resolved participant-visible messages (215/215) and images
 (16/16) and applied the evidence — Tests A/B (zero-payment and official-asp
 boundaries) are now 25/25 PASS, and plan-level safety remains oracle-verified
 (Test D 18/18 resolvable). Residual E/F deltas are attributed to reference
-purchase-stream sizing (D26), not to unavailable participant data.)
+purchase-stream sizing (D26), not to unavailable participant data.
+Phase 5 added the calibration harness (D30) with authoritative post-fix scores
+and confirmed D22 (horizon stays OPEN) and D16 (rounding adequate).)
 
 - E1. **Recurrence detection**: an event series repeats when the same user+category+direction shows regular periodic settlement history (e.g. monthly salary on the 15th); one-off spikes explicitly flagged by evidence (e.g. message_02 "one-time adjustment") are excluded from the projection. Recurring amounts use a conservative value from history (e.g. recent max/last), not an optimistic average.
 - E2. **`max_installment_months` semantics**: an option is allowed when its total span (`first_payment_date + (number_of_payments-1) × payment_frequency_days` minus request context) fits within `max_installment_months` months (approx. 30-day months). To be pinned by regression: user_02 (max 7) accepted a 3×30d option and the 18×31d option would be excluded under any reasonable reading.

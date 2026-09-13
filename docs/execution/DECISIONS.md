@@ -185,6 +185,22 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: financial_boundary_audit.py before/after (A/B 22->25 PASS each); request_13 mechanism demo; user Phase 4 addendum.
 - Revisit condition: Phase 5 calibration evidence.
 
+## D30 — Phase 5 calibration findings and parameter-propagation fix
+- Date: 2026-09-13 (Phase 5 + addendum + reconciliation)
+- Decision:
+  (a) The original Phase-5 calibration harness results AND the addendum results are both SUPERSEDED. The original harness produced asp=3/status=18/method=20/plan=20/earliest=15 for scope=all occ=2 median; the addendum produced identical scores across all variants due to a parameter-shadowing bug (timeline.py constructed ProvisionParams() with hard-coded defaults instead of reading the module-level variable). The authoritative post-fix results are: protected/1/median = asp 4/status 19/method 21/plan 18/earliest 11/changes 22/0 contradictions (production default); all/2/median = asp 3/status 18/method 20/plan 17/earliest 9/changes 22/0 contradictions (no structural improvement).
+  (b) No tested variant improves aggregate structural scores without introducing contradictions or losing capped samples. The current policy (scope=protected, occurrences=1, statistic=median) is retained as the local optimum.
+  (c) The min_allowed classification was tested and REVERTED (creates request_01 contradiction).
+  (d) D22 tested both horizon conventions: 11/25 exact both ways — no aggregate evidence, stays OPEN.
+  (e) D16 rounding confirmed adequate (0.01 quantum, floor).
+  (f) Parameter-propagation regression test added: proves that changing ProvisionParams scope/occurrences/statistic measurably changes reserve flows.
+- Status: DECIDED (Phase 5 complete; D24 superseded; D22/D16 OPEN)
+- Alternatives: adopting scope=all occ=2 median (rejected — loses asp/status/method without net structural gain); min_allowed classification (rejected — creates request_01 contradiction).
+- Why: the harness is the objective arbiter; no variant dominates.
+- Trade-offs: asp/earliest exact values remain bounded by D26.
+- Evidence/source: calibration_harness.py output (18 variants, all measured); timeline.py shadowing fix (commit 8cac782); test_phase3_review_fixes.py.
+- Revisit condition: Phase 6+ if new calibration evidence appears.
+
 ## D27 — Planning money quantum: 0.01, floor (Phase 3)
 - Date: 2026-09-13 (Phase 3)
 - Decision: one centralized planning quantum `PLANNING_QUANTUM = 0.01` (code/planning/models.py). ASP is FLOORED to the quantum (never rounded up — safety first); no other rounding is introduced (D16 unchanged).
