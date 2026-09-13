@@ -367,6 +367,10 @@ class ProvisionParams:
     min_events_90d: int = 6          # sustained behavior, not a blip
     min_windows_active: int = 3      # spend present in each of the last 3 windows
     window_days: int = 30
+    # Phase 5 calibration knobs (D30):
+    scope: str = "protected"         # "protected" | "all" variable debit streams
+    occurrences: int = 1             # reserve placements over the horizon
+    statistic: str = "median"        # median | max | trailing (window-total statistic)
 
 
 DEFAULT_PROVISION_PARAMS = ProvisionParams()
@@ -374,8 +378,8 @@ DEFAULT_PROVISION_PARAMS = ProvisionParams()
 
 def essential_provisions(events, protected_categories, request_date, patterns,
                          projected_fixed_keys=None,
-                         params=DEFAULT_PARAMS,
-                         provision_params=DEFAULT_PROVISION_PARAMS):
+                         params=None,
+                         provision_params=None):
     """Conservative aggregate provision for VARIABLE essential spending
     (official AGENTS.md 6.3: "Forecast essential variable spending
     conservatively").
@@ -395,13 +399,18 @@ def essential_provisions(events, protected_categories, request_date, patterns,
     samples (request_01's official budget admits exactly one aggregate
     provision).
     """
+    params = params or DEFAULT_PARAMS
+    provision_params = provision_params or DEFAULT_PROVISION_PARAMS
     projected_keys = projected_fixed_keys or set()
     by_category = {}
     for e in events:
         if (e.direction == EventDirection.DEBIT and e.status == EventStatus.SETTLED
-                and e.amount is not None and e.category in protected_categories
+                and e.amount is not None
                 and request_date - timedelta(days=90) <= e.event_date <= request_date):
             by_category.setdefault(e.category, []).append(e)
+    if provision_params.scope == "protected":
+        by_category = {c: v for c, v in by_category.items()
+                       if c in protected_categories}
 
     provisions = []
     for category, evs in sorted(by_category.items()):
@@ -418,15 +427,22 @@ def essential_provisions(events, protected_categories, request_date, patterns,
                 sum((e.amount for e in in_window), Decimal("0")) if in_window else None)
         if any(total is None for total in window_totals):
             continue  # spend must be present in all three windows (sustained)
-        amount = statistics.median(window_totals)
+        if provision_params.statistic == "max":
+            amount = max(window_totals)
+        elif provision_params.statistic == "trailing":
+            amount = window_totals[0]
+        else:
+            amount = statistics.median(window_totals)
         if amount <= 0:
             continue
         sources = tuple(sorted(e.event_id for e in evs))
-        provisions.append(ResolvedCashEvent(
-            amount=amount, currency=evs[0].currency,
-            direction=EventDirection.DEBIT,
-            effective_date=request_date + timedelta(days=provision_params.window_days),
-            category=category, event_type="essential_provision",
-            flexibility="fixed", source_event_ids=sources,
-            basis="essential_provision"))
+        for k in range(1, provision_params.occurrences + 1):
+            provisions.append(ResolvedCashEvent(
+                amount=amount, currency=evs[0].currency,
+                direction=EventDirection.DEBIT,
+                effective_date=request_date
+                + timedelta(days=provision_params.window_days * k),
+                category=category, event_type="essential_provision",
+                flexibility="fixed", source_event_ids=sources,
+                basis="essential_provision"))
     return provisions
