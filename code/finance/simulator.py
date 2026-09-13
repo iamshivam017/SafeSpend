@@ -1,11 +1,14 @@
 """90-day cash-flow simulator with the minimum-balance invariant.
 
-Same-day ordering (D6, resolved): within a day all DEBITS are applied before
-CREDITS, debits sorted by magnitude descending (largest first), credits
-ascending. The floor is checked after every debit and at end-of-day, so a
-same-day credit can never mask an intraday floor violation. This is the
-financially safer deterministic interpretation; the official material does
-not specify intra-day order.
+Same-day semantics (D6, REVISED in Phase 2.1 on sample evidence): the floor is
+checked on the END-OF-DAY balance. The original debits-first intraday check was
+contradicted by official solved plans that pay on a day a salary arrives
+(request_18, request_23: official wait plans land exactly on payday, EOD-safe,
+and the official model treats them as safe — an intraday debits-first check
+would reject them). Within-day order is therefore only a deterministic TRACE
+presentation (debits largest-first, then credits); end-of-day balance is
+order-independent. Official wording never specifies intra-day order; the
+solved samples are the stronger evidence.
 
 Horizon: [request_date, request_date + 90] inclusive (docs/finance/timeline).
 
@@ -81,24 +84,25 @@ class SimulationResult:
 
 def _apply_day(day_start: Decimal, flows: list[CashFlow], floor: Decimal,
                day: date, trace: list[TimelineEntry]) -> tuple[Decimal, date | None]:
-    """Apply one day's flows in the D6 order; return (end_balance, first_violation)."""
+    """Apply one day's flows; floor checked on the END-OF-DAY balance (D6 rev. 2).
+
+    Movement recording is deterministic (debits largest-first, then credits
+    ascending) but does not affect the balance outcome.
+    """
     debits = sorted([f for f in flows if f.amount_home < 0],
                     key=lambda f: (f.amount_home, f.category))  # most negative first
     credits = sorted([f for f in flows if f.amount_home >= 0],
                      key=lambda f: (f.amount_home, f.category))
-    balance = day_start
-    first_violation: date | None = None
     entry = TimelineEntry(date=day, starting_balance=day_start, minimum_required=floor)
+    balance = day_start
     for f in debits:
         balance += f.amount_home
         entry.movements.append((f.basis, f.amount_home, f.category))
-        if balance < floor and first_violation is None:
-            first_violation = day
-            entry.safe_after_step = False
     for f in credits:
         balance += f.amount_home
         entry.movements.append((f.basis, f.amount_home, f.category))
-    if balance < floor and first_violation is None:
+    first_violation: date | None = None
+    if balance < floor:
         first_violation = day
         entry.safe_after_step = False
     entry.ending_balance = balance

@@ -28,7 +28,7 @@ Progress markers: `[ ]` not started, `[~]` in progress, `[x]` complete.
 - Acceptance: zero silent parsing coercion (fail-fast), Decimal everywhere on money.
 - Stop condition: hard-fail behavior proven on malformed input fixture.
 
-## PHASE 2 — Lifecycle resolver and 90-day simulator — `[x]` (2026-09-13: 171 tests green; CodeRabbit-reviewed and fix-verified, D20; diagnostics clean; D6/D10/D11/D18/D19 recorded)
+## PHASE 2 — Lifecycle resolver and 90-day simulator — `[x]` (2026-09-13: 190 tests; CodeRabbit-reviewed (D20); Phase 2.1 sample-grounded correction: plan-safety audit 0 contradictions, D6/D10 rev.2, D21/D22)
 - Objective: correct per-user cash reality.
 - Tasks: conflict-order resolver (R14); dedup; linked-event lifecycle; FX at settlement date
   (+chain fallback 03 §E4); recurrence detection (03 §E1); pending/scheduled/settled handling;

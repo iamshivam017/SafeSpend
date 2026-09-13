@@ -221,7 +221,15 @@ def _drop_same_group_pending_duplicates(cash_events: list[ResolvedCashEvent],
             representation = [s for s in settled_same
                               if s.amount == pending.amount
                               and abs((pending.event_date - s.event_date).days) <= 45]
-            terminal_match = [t for t in terminal_debits if t.amount == pending.amount]
+            # explicit cancellation/failed resolution (official precedence 1):
+            # same-amount terminal record suppresses the pending wherever it
+            # sits; a terminal record dated BEFORE the pending suppresses it at
+            # any amount (the pending is the cancelled transaction's own
+            # changed-amount continuation). A terminal record dated after a
+            # different-amount pending leaves it alone (distinct movement).
+            terminal_match = [t for t in terminal_debits
+                              if t.amount == pending.amount
+                              or t.event_date <= pending.event_date]
             if representation:
                 drop.add(pending.event_id)
                 result.ignored.append(IgnoredRecord(
@@ -232,8 +240,8 @@ def _drop_same_group_pending_duplicates(cash_events: list[ResolvedCashEvent],
                 drop.add(pending.event_id)
                 result.ignored.append(IgnoredRecord(
                     pending.event_id,
-                    f"pending movement matches a {terminal_match[0].status.value} record "
-                    f"in the same lifecycle group (explicitly resolved away)"))
+                    f"pending movement resolved by a {terminal_match[0].status.value} "
+                    f"record in the same lifecycle group (explicit cancellation precedence)"))
     return [c for c in cash_events if c.source_event_ids[0] not in drop]
 
 

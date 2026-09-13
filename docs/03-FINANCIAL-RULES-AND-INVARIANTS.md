@@ -13,7 +13,7 @@ presented as official.
 ### 1.1 Starting position and floors
 - R1. Start from `financial_profiles.current_available_balance` (home currency) on `request_date`. Source: problem_statement.md ("Balances… use the user's home_currency"), README.md.
 - R2. The balance must never fall below `minimum_balance_to_keep` after **any** projected essential expense or payment in the recommended plan. Source: AGENTS.md §6.3, problem_statement.md.
-- R3. Horizon: 90-day forward forecast from `request_date`. Source: problem_statement.md "90-Day Safety Check".
+- R3. Horizon: 90-day forward forecast from `request_date`. Source: problem_statement.md "90-Day Safety Check". Boundary convention (inclusive +90 vs +89) is NOT officially resolved — engineering decision, see D22 (centralized in `HORIZON_DAYS`).
 
 ### 1.2 Cash-state treatment of events
 - R4. Reserve **pending debits**. Source: AGENTS.md §6.3.
@@ -90,10 +90,11 @@ presented as official.
 
 ## SECTION 3 — ENGINEERING INTERPRETATIONS
 (Our working decisions; each is validated against the 25-sample regression before use.
-Tracked in execution/DECISIONS.md. Phase 2 implemented E1 (D10/D18), E4 (D11: direct
-rates only, empirically sufficient), E5 (D6 resolved: debits-descending-first with
-per-debit floor checks), and added the balance-snapshot interpretation D19; E2/E3
-remain OPEN for Phase 3.)
+Tracked in execution/DECISIONS.md. Phase 2 implemented E1 (D10/D18) and E4 (D11: direct
+rates only, empirically sufficient), and added the balance-snapshot interpretation
+D19. Phase 2.1 revised E1 (day-of-month clustering; monthly-commitments-only
+projection scope) and E5 (EOD floor checking) on sample evidence — D6/D10 rev. 2,
+D21 essential-provision safety net, D22 audit+horizon. E2/E3 remain OPEN for Phase 3.)
 
 - E1. **Recurrence detection**: an event series repeats when the same user+category+direction shows regular periodic settlement history (e.g. monthly salary on the 15th); one-off spikes explicitly flagged by evidence (e.g. message_02 "one-time adjustment") are excluded from the projection. Recurring amounts use a conservative value from history (e.g. recent max/last), not an optimistic average.
 - E2. **`max_installment_months` semantics**: an option is allowed when its total span (`first_payment_date + (number_of_payments-1) × payment_frequency_days` minus request context) fits within `max_installment_months` months (approx. 30-day months). To be pinned by regression: user_02 (max 7) accepted a 3×30d option and the 18×31d option would be excluded under any reasonable reading.

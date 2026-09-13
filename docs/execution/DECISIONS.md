@@ -66,17 +66,17 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: engineering; docs/08.
 - Revisit condition: if prompt iteration invalidates cache during Phase 4/5.
 
-## D6 — Event-ordering policy (same-day) — RESOLVED IN PHASE 2
-- Date: 2026-09-13 (resolved)
-- Decision: within a simulation day, apply ALL debits before credits; debits sorted by magnitude descending (largest first), credits ascending. The floor is checked after every debit and at end-of-day, so a same-day credit can never mask an intraday violation.
-- Status: DECIDED (implemented in code/finance/simulator.py::_apply_day; Phase 5 may calibrate only if sample evidence contradicts)
-- Context: official conflict rule (4) "financially safer interpretation"; official wording does not specify intra-day order.
-- Alternatives: credits-first (optimistic — lets same-day salary sanction unsafe spending, rejected); single net-daily delta (hides intraday violations, rejected).
-- Chosen approach: debits-descending-first with per-debit floor checks.
-- Why: the minimum-balance invariant must not be bypassed by sort order; matches directive sections 16/20 (a temporary violation stays a violation).
-- Trade-offs: most conservative same-day reading; may understate capacity if ground truth nets daily deltas — Phase 5 regression will expose this if real.
-- Evidence/source: problem_statement.md conflict rules; user Phase 2 directive sections 16/20.
-- Revisit condition: Phase 5 sample regression contradiction.
+## D6 — Same-day semantics — REVISED IN PHASE 2.1 on sample evidence
+- Date: 2026-09-13 (revision 2)
+- Decision: the minimum-balance floor is checked on the END-OF-DAY balance. Within-day movement order is deterministic TRACE presentation only (debits largest-first, then credits ascending); it does not affect the outcome. Revision 1 (debits-first intraday checks) was contradicted by official solved samples: request_18 and request_23 wait-plans pay exactly on payday and are official-safe, which an intraday debits-first check rejects.
+- Status: DECIDED (rev. 2; implemented in code/finance/simulator.py::_apply_day)
+- Context: official wording never specifies intra-day order; the solved samples are the stronger evidence and they net the day.
+- Alternatives: intraday debits-first (rev. 1 — rejected by samples 18/23); credits-first (same objection as before).
+- Chosen approach: EOD netting with ordered trace presentation.
+- Why: official plans pay on payday; netting matches the official oracle. Netting is not leniency: a day whose NET dips below the floor is still unsafe (tested).
+- Trade-offs: an intraday dip recovered by same-day credit is no longer flagged — accepted because the official oracle contradicts flagging it.
+- Evidence/source: sample_requests.csv requests 18/23; plan-safety audit (0 contradictions post-change).
+- Revisit condition: contrary hidden-ground-truth evidence in Phase 5/6.
 
 ## D7 — Model / provider selection
 - Date: —
@@ -102,15 +102,16 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: sample_requests.csv rows 11/21.
 - Revisit condition: Phase 5 regression outcome.
 
-## D10 — Recurrence policy — IMPLEMENTED IN PHASE 2
-- Date: 2026-09-13 (parameters fixed; calibration open)
-- Decision: gap-bucket cadence detection on settled history grouped by (user, category, direction, currency). Buckets: weekly 6-8d, biweekly 13-15d, monthly 28-31d (projected by day-of-month clamp), plus fixed custom gaps (7/10/14/21d observed) requiring near-exact consistency. A series is periodic iff >=3 observations AND the dominant bucket covers >=60% of gaps. Conservative amount: debits = MAX of last 3; credits = MEDIAN of last 3 (robust to one-off adjustments like user_03's 1,964,250 salary spike). Projections drop within +/-3 days of an actual same-category+direction cash record (actual outranks forecast). Category names are never evidence.
-- Status: DECIDED (parameters explicit in code/finance/recurrence.py::RecurrenceParams; Phase 5 may tune min_observations/fraction/window)
-- Alternatives: category-based assumption (forbidden by official R9); 2-observation minimum (too weak); minimum-amount for credits (over-penalized by one-offs, rejected); trailing-30-day provisioning for irregular essentials (deferred — no sample evidence yet).
-- Why: gap analysis of the real dataset showed crisp monthly (28-31d) and fixed sub-monthly (7/10/14/21d) cadences; majority-rule handles one-off spikes.
-- Trade-offs: irregular-but-essential spend (if ground truth projects it) is currently under-forecast; Phase 5 regression will reveal.
-- Evidence/source: official R9; user Phase 2 directive sections 9-11; dataset gap analysis.
-- Revisit condition: Phase 5 sample regression contradiction.
+## D10 — Recurrence policy — REVISED IN PHASE 2.1 on sample evidence
+- Date: 2026-09-13 (revision 2)
+- Decision (detection): unchanged gap-bucket cadence detection (monthly 28-31d; fixed gaps +/-1; >=3 observations; >=60% majority; category names never evidence), PLUS day-of-month clustering: when a whole (user, category, direction, currency) series is not periodic, it is split into day-of-month clusters (tolerance 2, circular) and each cluster is re-tested — this detects interleaved twice-monthly salaries (users 09/13 evidence: paydays on the 7th/20th and 15th/20th) that naive gap detection misses. Monthly patterns anchor to the DOMINANT day-of-month, so a one-off adjustment (user_03's 08-20 spike) cannot hijack the projection anchor.
+- Decision (projection scope): ONLY monthly-cadence patterns are projected (`project_non_monthly=False`). Sub-monthly purchase series (groceries 7/10d, dining 14/21d, transport 7/21d) are detected and recorded for traceability but NOT forecast — sample evidence: requests 02/03/04/08/12/17/22 official plans become safe only without sub-monthly projections; they are repeated purchases, not commitments. Conservative amounts unchanged (debits MAX last-3, credits MEDIAN last-3); staleness bound unchanged; +/-3d actual-overlap drop unchanged.
+- Status: DECIDED (rev. 2); verified by the sample-plan safety audit: 0 contradictions across all officially-evaluable solved plans (was 10).
+- Alternatives: keep sub-monthly projections (rejected — contradicts 7 official plans); project sub-monthly at means (still contradicts 5); category-based recurrence (forbidden).
+- Why: the official solved plans are the strongest public regression oracle; repeated purchase gaps alone are not proof of a commitment.
+- Trade-offs: sub-monthly commitments (if the hidden ground truth has any) are under-forecast — Phase 5 calibration revisits with full asp/earliest machinery.
+- Evidence/source: sample_requests.csv (requests 09/13 traces; audit table); user Phase 2.1 directive.
+- Revisit condition: Phase 5 calibration evidence.
 
 ## D18 — Conservative variable-essential amounts
 - Date: 2026-09-13
@@ -123,6 +124,27 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Trade-offs: if hidden ground truth provisions irregular essentials (groceries beyond their detected cadence), we under-reserve — Phase 5 regression will expose and recalibrate.
 - Evidence/source: AGENTS.md 6.3; user Phase 2 directive section 11; dataset amount analysis.
 - Revisit condition: Phase 5 calibration evidence.
+
+## D21 — Essential variable spending provision (safety net)
+- Date: 2026-09-13 (Phase 2.1)
+- Decision: for a PROTECTED (essential) category with >=6 settled debits in the trailing 90 days, spend present in each of the last three 30-day windows, and NO detected recurring pattern, project a monthly provision equal to the trailing-30-day total at request_date+30 and +60 (the trailing window itself is already inside the starting balance — projecting only future windows avoids double-counting).
+- Status: DECIDED (implemented in code/finance/recurrence.py::essential_provisions)
+- Context: official "Forecast essential variable spending conservatively" (AGENTS.md 6.3). Empirical dataset fact: after day-of-month clustering, EVERY essential category with sustained spend on all 275 users has a detected pattern — the provision never fires on official data (asserted by test). It is a deterministic safety net for unseen evaluation shapes, not a sample-calibrated rule.
+- Alternatives considered: 75th-percentile robust estimate (more aggressive, no evidence); weekly trailing average (same coverage, more occurrences); omitting the policy entirely (rejected — leaves the official rule uncovered for irregular essentials).
+- Why: conservative, evidence-gated, double-count-safe, provenance-preserving (source event ids retained), independently tested.
+- Trade-offs: none on current data (never fires); if future data triggers it, Phase 5 calibration revisits the gate.
+- Evidence/source: AGENTS.md 6.3; user Phase 2.1 directive section 5; dataset census (0 essential-series gaps).
+- Revisit condition: Phase 5/6 evidence that the hidden ground truth provisions irregular essentials differently.
+
+## D22 — Sample-plan safety audit + horizon classification
+- Date: 2026-09-13 (Phase 2.1)
+- Decision: (a) added `code/evaluation/plan_safety_audit.py` — an EVALUATION-ONLY oracle that replays each solved sample's official payment_plan as hypothetical payments and reports PASS/CONTRADICTION/DEFERRED; production code is barred from importing it (AST-enforced). Result after corrections: 14 PASS / 11 DEFERRED / 0 CONTRADICTIONS. (b) The 90-day horizon boundary ([request_date, request_date+90] inclusive, 91 entries) is reclassified: official wording ("Forecast the user's balance for the next 90 days") does NOT resolve inclusive vs exclusive endpoints; no solved sample distinguishes them. It is an ENGINEERING DECISION / OPEN calibration item, centralized behind `HORIZON_DAYS` in code/finance/timeline.py (single constant; no scattered +90 assumptions).
+- Status: DECIDED (audit); OPEN (horizon boundary convention)
+- Alternatives: claiming the 91-entry convention as official (rejected — no official source resolves it); [d0, d0+89] (equally unsupported; kept 90 as the conservative superset).
+- Why: honesty about what official material specifies; the audit prevents engine/oracle drift before Phase 3.
+- Trade-offs: if the hidden truth uses +89, asp shifts by boundary events — Phase 5 calibration revisits.
+- Evidence/source: problem_statement.md line 178/180; AGENTS.md 6.3; README.md; audit run output.
+- Revisit condition: boundary-distinguishing sample evidence or Phase 5 calibration.
 
 ## D20 — CodeRabbit review round: engine-hardening policy changes
 - Date: 2026-09-13

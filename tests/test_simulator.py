@@ -63,21 +63,23 @@ class BasicSimulationTests(unittest.TestCase):
 
 
 class SameDayOrderingTests(unittest.TestCase):
-    def test_debits_before_credits_same_day(self):
-        # 100 balance, min 90: same-day credit +50 and debit -50 must be UNSAFE
-        # (debits first: 100 -> 50 < 90) even though EOD would be 100
+    def test_same_day_salary_and_debit_netted(self):
+        # D6 rev. 2 (Phase 2.1, sample evidence: requests 18/23 pay on payday):
+        # the floor is checked on the END-OF-DAY balance, so a same-day salary
+        # and debit net before the check. 100 - 50 + 50 = 100 >= 90 -> SAFE.
         p = profile(balance="100", minimum="90")
         r = simulate(p, D, [flow("50", D, category="salary"), flow("-50", D)])
+        self.assertEqual(r.state, SafetyState.SAFE)
+
+    def test_same_day_net_below_floor_is_unsafe(self):
+        # netting is not leniency: if the day's NET drops below the floor it is
+        # still a violation (100 - 50 - 50 = 0 < 90)
+        p = profile(balance="100", minimum="90")
+        r = simulate(p, D, [flow("50", D, category="salary"), flow("-100", D)])
         self.assertEqual(r.state, SafetyState.UNSAFE)
 
-    def test_largest_debit_checked_first(self):
-        # debits -100 and -1 with balance 101, min 0: largest first -> 1 -> 0: safe
-        p = profile(balance="101", minimum="0")
-        r = simulate(p, D, [flow("-1", D), flow("-100", D)])
-        self.assertEqual(r.state, SafetyState.SAFE)
-        self.assertEqual(r.minimum_projected_balance, Decimal("0"))
-
-    def test_multiple_same_day_events_deterministic(self):
+    def test_movement_order_does_not_affect_outcome(self):
+        # EOD balance is order-independent; only trace presentation is ordered
         p = profile(balance="1000", minimum="200")
         flows = [flow(f"{'-' if i % 2 else '+'}{50 + i}", D + timedelta(days=i % 3))
                  for i in range(6)]
@@ -85,6 +87,15 @@ class SameDayOrderingTests(unittest.TestCase):
         r2 = simulate(p, D, list(reversed(flows)), include_trace=True)
         self.assertEqual(r1.ending_balance, r2.ending_balance)
         self.assertEqual(r1.minimum_projected_balance, r2.minimum_projected_balance)
+        self.assertEqual([(e.date, e.ending_balance) for e in r1.timeline],
+                         [(e.date, e.ending_balance) for e in r2.timeline])
+        # trace presentation is still deterministic: debits before credits
+        day0 = [e for e in r1.timeline if e.date == D][0]
+        signs = [m[1] for m in day0.movements]
+        debits = [s for s in signs if s < 0]
+        credits = [s for s in signs if s >= 0]
+        self.assertEqual(signs, debits + credits)
+        self.assertEqual(debits, sorted(debits))
 
 
 class HypotheticalPaymentTests(unittest.TestCase):
