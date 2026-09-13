@@ -106,7 +106,14 @@ class BoundaryAuditor:
             asp = sample.amount_safe_to_pay
 
             # Test A: zero-payment baseline
-            if asp > 0 and sim0.state is SafetyState.UNSAFE:
+            if sim0.state is SafetyState.UNRESOLVED:
+                rows.append(BoundaryRow(
+                    request.request_id, "A", str(asp), "UNRESOLVED",
+                    str(sim0.minimum_projected_balance), str(profile.minimum_balance_to_keep),
+                    "-", "DEFERRED",
+                    "material unresolved evidence; boundary not deterministically "
+                    "evaluable (never counted as PASS)"))
+            elif asp > 0 and sim0.state is SafetyState.UNSAFE:
                 rows.append(BoundaryRow(
                     request.request_id, "A", str(asp), "UNSAFE",
                     str(sim0.minimum_projected_balance), str(profile.minimum_balance_to_keep),
@@ -122,7 +129,14 @@ class BoundaryAuditor:
 
             # Test B: official asp payment today
             simA, _, _ = self._state(sample, [Payment(request.request_date, asp)])
-            if simA.state is SafetyState.UNSAFE:
+            if simA.state is SafetyState.UNRESOLVED:
+                rows.append(BoundaryRow(
+                    request.request_id, "B", str(asp), "UNRESOLVED",
+                    str(simA.minimum_projected_balance), str(profile.minimum_balance_to_keep),
+                    "-", "DEFERRED",
+                    "material unresolved evidence; asp boundary not deterministically "
+                    "evaluable (never counted as PASS)"))
+            elif simA.state is SafetyState.UNSAFE:
                 rows.append(BoundaryRow(
                     request.request_id, "B", str(asp), "UNSAFE",
                     str(simA.minimum_projected_balance), str(profile.minimum_balance_to_keep),
@@ -138,18 +152,32 @@ class BoundaryAuditor:
                     f"margin {simA.minimum_projected_balance - profile.minimum_balance_to_keep}"))
 
             # Test C: simulator-implied max safe today (evaluation-only headroom)
+            if sim0.state is SafetyState.UNRESOLVED:
+                rows.append(BoundaryRow(
+                    request.request_id, "C", str(asp), "-", "-", "-", "-",
+                    "DEFERRED",
+                    "baseline unresolved: headroom not deterministically measurable"))
+                continue
             implied = self._implied_asp(sample)
             rows.append(BoundaryRow(
                 request.request_id, "C", str(asp), str(implied), "-", "-", "-",
                 "PASS" if implied == asp else "MISMATCH",
-                f"delta {implied - asp} (official internals not derivable; see D24)"))
+                f"delta {implied - asp} (delta analysis: D24/D26)"))
 
             # Test F: full-today consistency with earliest == request_date
             full_today = self._state(sample, [Payment(request.request_date,
                                                       request.requested_amount)])[0]
             earliest_is_today = (sample.earliest_date_for_full_payment == request.request_date)
+            if full_today.state is SafetyState.UNRESOLVED:
+                rows.append(BoundaryRow(
+                    request.request_id, "F", str(request.requested_amount),
+                    "UNRESOLVED", str(full_today.minimum_projected_balance),
+                    str(profile.minimum_balance_to_keep), "-", "DEFERRED",
+                    "material unresolved evidence; full-today boundary not "
+                    "deterministically evaluable"))
+                continue
             expected_safe = earliest_is_today
-            actual_safe = full_today.state is not SafetyState.UNSAFE
+            actual_safe = full_today.state is SafetyState.SAFE
             if expected_safe == actual_safe:
                 rows.append(BoundaryRow(
                     request.request_id, "F", str(request.requested_amount),
@@ -192,14 +220,22 @@ class BoundaryAuditor:
 
             # Test D: requested amount on the official earliest date
             simD = self._state(sample, [Payment(earliest, request.requested_amount)])[0]
-            rows.append(BoundaryRow(
-                request.request_id, "D", str(request.requested_amount),
-                simD.state.value, str(simD.minimum_projected_balance),
-                str(profile.minimum_balance_to_keep),
-                simD.first_floor_violation_date.isoformat()
-                if simD.first_floor_violation_date else "-",
-                "PASS" if simD.state is not SafetyState.UNSAFE else "CONTRADICTION",
-                f"payment on official earliest {earliest.isoformat()}"))
+            if simD.state is SafetyState.UNRESOLVED:
+                rows.append(BoundaryRow(
+                    request.request_id, "D", str(request.requested_amount),
+                    "UNRESOLVED", str(simD.minimum_projected_balance),
+                    str(profile.minimum_balance_to_keep), "-", "DEFERRED",
+                    "material unresolved evidence; earliest-date boundary not "
+                    "deterministically evaluable"))
+            else:
+                rows.append(BoundaryRow(
+                    request.request_id, "D", str(request.requested_amount),
+                    simD.state.value, str(simD.minimum_projected_balance),
+                    str(profile.minimum_balance_to_keep),
+                    simD.first_floor_violation_date.isoformat()
+                    if simD.first_floor_violation_date else "-",
+                    "PASS" if simD.state is SafetyState.SAFE else "CONTRADICTION",
+                    f"payment on official earliest {earliest.isoformat()}"))
 
             # Test E: one day earlier must be UNSAFE (minimality), if in window
             prev_day = earliest - timedelta_one()
@@ -214,6 +250,11 @@ class BoundaryAuditor:
                 rows.append(BoundaryRow(
                     request.request_id, "E", "-", "-", "-", "-", "-", "DEFERRED",
                     "unresolved evidence on the preceding day"))
+            elif simE.state is SafetyState.UNRESOLVED:
+                rows.append(BoundaryRow(
+                    request.request_id, "E", "-", "UNRESOLVED", "-", "-", "-",
+                    "DEFERRED",
+                    f"unresolved evidence on {prev_day.isoformat()}"))
             elif simE.state is SafetyState.UNSAFE:
                 rows.append(BoundaryRow(
                     request.request_id, "E", "-", "UNSAFE", "-", "-", "-", "PASS",
