@@ -22,18 +22,21 @@ def plan_for_request(bundle, indexes, request, all_claims: list[EvidenceClaim] |
     profile_obj = indexes.profiles_by_user_id[request.user_id]
 
     projected_keys = {(f.category, f.direction_value) for f in timeline.flows
-                      if f.basis == "recurring_projection"}
+                      if f.basis in ("recurring_projection", "essential_provision")}
     projected_debit_patterns = []
     source_events_by_pattern: dict[int, list] = {}
     for pattern in patterns:
         key = (pattern.category, pattern.direction.value)
         source = [e for e in user_events if e.event_id in pattern.source_event_ids]
-        if key in projected_keys and pattern.direction.value == "debit" \
-                and classify_pattern(pattern, source,
-                                     set(profile_obj.expense_categories_to_protect)) \
-                == "fixed_commitment":
-            projected_debit_patterns.append(pattern)
-            source_events_by_pattern[id(pattern)] = source
+        is_projected = key in projected_keys
+        is_reserve = any(f.category == pattern.category and f.basis == "essential_provision"
+                         for f in timeline.flows)
+        if (is_projected or is_reserve) and pattern.direction.value == "debit":
+            fc = classify_pattern(pattern, source,
+                                  set(profile_obj.expense_categories_to_protect))
+            if fc == "fixed_commitment" or is_reserve:
+                projected_debit_patterns.append(pattern)
+                source_events_by_pattern[id(pattern)] = source
 
     actions = enumerate_actions(projected_debit_patterns, source_events_by_pattern,
                                 profile_obj)

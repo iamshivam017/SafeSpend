@@ -368,7 +368,7 @@ class ProvisionParams:
     min_windows_active: int = 3      # spend present in each of the last 3 windows
     window_days: int = 30
     # Phase 5 calibration knobs (D30):
-    scope: str = "protected"         # "protected" | "all" variable debit streams
+    scope: str = "protected"         # "protected" | "all" | "adjustable_variable_only"
     occurrences: int = 1             # reserve placements over the horizon
     statistic: str = "median"        # median | max | trailing (window-total statistic)
 
@@ -379,7 +379,8 @@ DEFAULT_PROVISION_PARAMS = ProvisionParams()
 def essential_provisions(events, protected_categories, request_date, patterns,
                          projected_fixed_keys=None,
                          params=None,
-                         provision_params=None):
+                         provision_params=None,
+                         adjustable_categories=None):
     """Conservative aggregate provision for VARIABLE essential spending
     (official AGENTS.md 6.3: "Forecast essential variable spending
     conservatively").
@@ -411,6 +412,9 @@ def essential_provisions(events, protected_categories, request_date, patterns,
     if provision_params.scope == "protected":
         by_category = {c: v for c, v in by_category.items()
                        if c in protected_categories}
+    elif provision_params.scope == "adjustable_variable_only":
+        by_category = {c: v for c, v in by_category.items()
+                       if c in adjustable_categories}
 
     provisions = []
     for category, evs in sorted(by_category.items()):

@@ -103,9 +103,21 @@ def build_cash_timeline(profile: FinancialProfile, request_date: date,
         protected_categories=set(profile.expense_categories_to_protect))
     from .recurrence import essential_provisions
     projected_fixed_keys = {(c.category, "debit") for c in projected}
+    protected = set(profile.expense_categories_to_protect)
+    adjustable = (set(profile.expense_categories_user_is_willing_to_stop)
+                  | set(profile.expense_categories_user_is_willing_to_reduce))
+    from ..finance.recurrence import ProvisionParams
+    pp = ProvisionParams()
+    if pp.scope == "adjustable_variable_only":
+        cat_filter = adjustable - protected
+    elif pp.scope == "all":
+        cat_filter = set()  # all categories
+    else:
+        cat_filter = protected
     provisions = essential_provisions(
-        user_events, set(profile.expense_categories_to_protect),
-        request_date, patterns, projected_fixed_keys=projected_fixed_keys)
+        user_events, protected, request_date, patterns,
+        projected_fixed_keys=projected_fixed_keys,
+        provision_params=pp, adjustable_categories=cat_filter)
     for c in provisions:
         amount_home = converter.convert(c.amount, c.currency, profile.home_currency,
                                         on_date=c.effective_date,

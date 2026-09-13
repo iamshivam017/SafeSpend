@@ -32,7 +32,7 @@ def _representative_event_id(events: list[FinancialEvent]) -> str:
 
 
 def eligible_actions(pattern, source_events: list[FinancialEvent],
-                     profile) -> list[ChangeAction]:
+                     profile, include_reserves: bool = False) -> list[ChangeAction]:
     """Deterministic maximal actions for one projected recurring debit pattern.
 
     D9: reduce_to targets exactly the supplied minimum_allowed_amount.
@@ -40,18 +40,25 @@ def eligible_actions(pattern, source_events: list[FinancialEvent],
     if pattern.direction.value != "debit":
         return []
     category = pattern.category
-    if category in profile.expense_categories_to_protect:
-        return []  # protected categories are never modified
+    is_protected = category in profile.expense_categories_to_protect
+    if is_protected and not include_reserves:
+        return []
     flex = pattern.flexibility
     actions: list[ChangeAction] = []
     event_id = _representative_event_id(source_events)
     floors = [e.minimum_allowed_amount for e in source_events
               if e.minimum_allowed_amount is not None]
     min_allowed = max(floors) if floors else Decimal("0")
+    if is_protected and include_reserves:
+        # essential provisions are not stoppable/reducible (protected)
+        return []
     can_stop = (flex in ("stoppable", "reducible_or_stoppable")
                 and category in profile.expense_categories_user_is_willing_to_stop)
     can_reduce = (flex in ("reducible", "reducible_or_stoppable")
                   and category in profile.expense_categories_user_is_willing_to_reduce)
+    if include_reserves and category not in profile.expense_categories_user_is_willing_to_stop \
+            and category not in profile.expense_categories_user_is_willing_to_reduce:
+        return []
 
     series_ids = frozenset(e.event_id for e in source_events)
     if can_stop:
