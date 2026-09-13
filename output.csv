@@ -1,0 +1,251 @@
+request_id,amount_safe_to_pay,affordability_status,recommended_payment_method,payment_plan,earliest_date_for_full_payment,spending_changes_needed,decision_explanation
+request_26,15656000,affordable_now,full_payment,2025-08-03:15656000,2025-08-03,none,Pay 15656000 today; minimum balance 24768300 protected.
+request_27,6670,affordable_now,full_payment,2026-07-05:6670,2026-07-05,none,Pay 6670 today; minimum balance 20500 protected.
+request_28,426.86,affordable_later,wait,2024-07-15:1302.4,2024-07-15,none,Wait and pay 1302.4 on 2024-07-15; minimum balance 1100 protected throughout.
+request_29,32600.95,not_affordable,not_recommended,none,,none,Cannot afford request_29 safely within the horizon; ASP=32600.95 with minimum balance 28300 protected.
+request_30,775.2,affordable_with_plan,installments,2026-04-06:268.74|2026-05-06:268.74|2026-06-05:268.74,2026-04-06,none,Pay 775.2 today via installments; minimum balance 900 protected.
+request_31,5907921.93,affordable_later,wait,2024-10-15:18164000,2024-10-15,none,Wait and pay 18164000 on 2024-10-15; minimum balance 16588900 protected throughout.
+request_32,23199.0,affordable_later,wait,2025-03-15:40018,2025-03-15,none,Wait and pay 40018 on 2025-03-15; minimum balance 35700 protected throughout.
+request_33,51069.49,affordable_later,wait,2026-02-15:118000,2026-02-15,none,Wait and pay 118000 on 2026-02-15; minimum balance 102100 protected throughout.
+request_34,129400,affordable_now,full_payment,2024-12-04:129400,2024-12-04,none,Pay 129400 today; minimum balance 138500 protected.
+request_35,56578.66,affordable_later,wait,2025-12-15:212000,2025-12-15,none,Wait and pay 212000 on 2025-12-15; minimum balance 106400 protected throughout.
+request_36,905.16,affordable_later,wait,2026-08-15:3954,2026-08-15,none,Wait and pay 3954 on 2026-08-15; minimum balance 2400 protected throughout.
+request_37,6763768.84,affordable_later,wait,2024-04-15:14649000,2024-04-15,none,Wait and pay 14649000 on 2024-04-15; minimum balance 17056200 protected throughout.
+request_38,261.06,affordable_later,wait,2025-09-15:971.3,2025-09-15,none,Wait and pay 971.3 on 2025-09-15; minimum balance 400 protected throughout.
+request_39,160378.32,affordable_later,wait,2026-04-15:208600,2026-04-15,none,Wait and pay 208600 on 2026-04-15; minimum balance 213400 protected throughout.
+request_40,540,affordable_later,wait,2024-07-15:1290.3,2024-07-15,none,Wait and pay 1290.3 on 2024-07-15; minimum balance 1500 protected throughout.
+request_41,13519249.68,affordable_later,wait,2025-12-15:38760000,2025-12-15,none,Wait and pay 38760000 on 2025-12-15; minimum balance 25366600 protected throughout.
+request_42,52100,affordable_now,full_payment,2026-01-05:52100,2026-01-05,none,Pay 52100 today; minimum balance 113100 protected.
+request_43,9802940.49,affordable_later,wait,2024-10-15:43339000,2024-10-15,none,Wait and pay 43339000 on 2024-10-15; minimum balance 21398000 protected throughout.
+request_44,41517.88,affordable_later,wait,2025-03-15:95800,2025-03-15,none,Wait and pay 95800 on 2025-03-15; minimum balance 82900 protected throughout.
+request_45,6301384.76,affordable_later,wait,2026-08-15:21983000,2026-08-15,none,Wait and pay 21983000 on 2026-08-15; minimum balance 11149800 protected throughout.
+request_46,49450,affordable_with_plan,installments,2024-12-03:25714|2024-12-31:25714,2024-12-03,none,Pay 49450 today via installments; minimum balance 84000 protected.
+request_47,32494380.30,affordable_with_plan,full_payment,2025-05-05:38114000,,stop:event_4340|stop:event_4341|stop:event_4339,Pay 32494380.30 today; minimum balance 30049000 protected. Spending changes applied: stop:event_4340; stop:event_4341; stop:event_4339.
+request_48,45700,affordable_now,full_payment,2026-07-25:45700,2026-07-25,none,Pay 45700 today; minimum balance 71300 protected.
+request_49,15786210.35,affordable_with_plan,installments,2024-03-18:11902106.67|2024-04-18:11902106.67|2024-05-19:11902106.67,2024-04-15,none,Pay 15786210.35 today via installments; minimum balance 20275700 protected.
+request_50,43900,affordable_now,full_payment,2025-08-06:43900,2025-08-06,none,Pay 43900 today; minimum balance 99700 protected.
+request_51,2191000,affordable_now,full_payment,2026-01-03:2191000,2026-01-03,none,Pay 2191000 today; minimum balance 7811000 protected.
+request_52,26530,affordable_later,wait,2024-06-15:28870,2024-06-15,none,Wait and pay 28870 on 2024-06-15; minimum balance 41500 protected throughout.
+request_53,714.42,affordable_with_plan,installments,2025-11-21:589.06|2025-12-19:589.06|2026-01-16:589.06,2025-12-15,none,Pay 714.42 today via installments; minimum balance 2100 protected.
+request_54,9949.09,not_affordable,not_recommended,none,,none,Cannot afford request_54 safely within the horizon; ASP=9949.09 with minimum balance 37000 protected.
+request_55,148236.76,affordable_with_plan,installments,2026-06-11:75781.33|2026-07-12:75781.33|2026-08-12:75781.33,2026-07-15,none,Pay 148236.76 today via installments; minimum balance 124300 protected.
+request_56,758.56,affordable_with_plan,partial_payment,2025-02-03:758.56|2025-02-15:123.00,2025-02-15,none,Pay 758.56 today via partial_payment; minimum balance 2100 protected.
+request_57,14724.02,affordable_later,wait,2026-05-15:61446,2026-05-15,none,Wait and pay 61446 on 2026-05-15; minimum balance 42700 protected throughout.
+request_58,16226000,affordable_now,full_payment,2024-12-07:16226000,2024-12-07,none,Pay 16226000 today; minimum balance 14433900 protected.
+request_59,140600,affordable_with_plan,installments,2025-05-07:48741.33|2025-06-04:48741.33|2025-07-02:48741.33,2025-05-04,none,Pay 140600 today via installments; minimum balance 132600 protected.
+request_60,199.89,affordable_now,full_payment,2026-01-06:199.89,2026-01-06,none,Pay 199.89 today; minimum balance 400 protected.
+request_61,29062,affordable_with_plan,installments,2024-03-17:10074.83|2024-04-17:10074.83|2024-05-18:10074.83,2024-03-03,none,Pay 29062 today via installments; minimum balance 36700 protected.
+request_62,404.23,affordable_now,full_payment,2025-08-05:404.23,2025-08-05,none,Pay 404.23 today; minimum balance 1300 protected.
+request_63,58396.01,affordable_with_plan,partial_payment,2026-07-07:58396.01|2026-09-15:285503.99,2026-09-15,none,Pay 58396.01 today via partial_payment; minimum balance 153500 protected.
+request_64,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_65,8328.45,not_affordable,not_recommended,none,2026-01-15,none,Cannot afford request_65 safely within the horizon; ASP=8328.45 with minimum balance 15500 protected.
+request_66,22200,affordable_now,full_payment,2026-04-03:22200,2026-04-03,none,Pay 22200 today; minimum balance 80700 protected.
+request_67,596.52,affordable_later,wait,2024-10-15:2094,2024-10-15,none,Wait and pay 2094 on 2024-10-15; minimum balance 1200 protected throughout.
+request_68,1616.48,affordable_with_plan,installments,2025-02-14:725.09|2025-03-14:725.09|2025-04-11:725.09,2025-02-15,none,Pay 1616.48 today via installments; minimum balance 1500 protected.
+request_69,529.1,affordable_now,full_payment,2026-01-04:529.1,2026-01-04,none,Pay 529.1 today; minimum balance 700 protected.
+request_70,59952.21,affordable_later,wait,2025-01-15:243900,2025-01-15,none,Wait and pay 243900 on 2025-01-15; minimum balance 115000 protected throughout.
+request_71,2172849.03,not_affordable,not_recommended,none,2025-07-15,none,Cannot afford request_71 safely within the horizon; ASP=2172849.03 with minimum balance 8884800 protected.
+request_72,11330,affordable_now,full_payment,2026-07-05:11330,2026-07-05,none,Pay 11330 today; minimum balance 12200 protected.
+request_73,71400,affordable_now,full_payment,2023-01-20:71400,2023-01-20,none,Pay 71400 today; minimum balance 103200 protected.
+request_74,5010,affordable_now,full_payment,2025-08-04:5010,2025-08-04,none,Pay 5010 today; minimum balance 21900 protected.
+request_75,28270,affordable_with_plan,installments,2026-04-09:9800.27|2026-05-09:9800.27|2026-06-08:9800.27,2026-04-06,none,Pay 28270 today via installments; minimum balance 39000 protected.
+request_76,3460.27,not_affordable,not_recommended,none,2024-07-03,none,Cannot afford request_76 safely within the horizon; ASP=3460.27 with minimum balance 1800 protected.
+request_77,60700,affordable_now,full_payment,2025-11-05:60700,2025-11-05,none,Pay 60700 today; minimum balance 82200 protected.
+request_78,50200,affordable_now,full_payment,2025-10-02:50200,2025-10-02,none,Pay 50200 today; minimum balance 55200 protected.
+request_79,856.13,not_affordable,not_recommended,none,2024-11-15,none,Cannot afford request_79 safely within the horizon; ASP=856.13 with minimum balance 1000 protected.
+request_80,217500,not_affordable,not_recommended,none,2025-02-06,none,Cannot afford request_80 safely within the horizon; ASP=217500 with minimum balance 121300 protected.
+request_81,2076,affordable_now,full_payment,2026-07-03:2076,2026-07-03,none,Pay 2076 today; minimum balance 1600 protected.
+request_82,537.46,affordable_later,wait,2025-01-15:1405.2,2025-01-15,none,Wait and pay 1405.2 on 2025-01-15; minimum balance 1100 protected throughout.
+request_83,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_84,33355.19,affordable_later,wait,2026-05-15:95400,2026-05-15,none,Wait and pay 95400 on 2026-05-15; minimum balance 91300 protected throughout.
+request_85,1705635.45,not_affordable,not_recommended,none,,none,Cannot afford request_85 safely within the horizon; ASP=1705635.45 with minimum balance 6396300 protected.
+request_86,46300,affordable_now,full_payment,2025-08-03:46300,2025-08-03,none,Pay 46300 today; minimum balance 84900 protected.
+request_87,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_88,11959.79,affordable_with_plan,installments,2024-06-14:9045.23|2024-07-15:9045.23|2024-08-15:9045.23,2024-06-15,none,Pay 11959.79 today via installments; minimum balance 25800 protected.
+request_89,10831438.44,affordable_with_plan,installments,2025-11-18:4768746.67|2025-12-16:4768746.67|2026-01-13:4768746.67,2025-12-15,none,Pay 10831438.44 today via installments; minimum balance 12534700 protected.
+request_90,2560,affordable_now,full_payment,2026-07-06:2560,2026-07-06,none,Pay 2560 today; minimum balance 7600 protected.
+request_91,896.73,affordable_later,wait,2024-10-15:1927.2,2024-10-15,none,Wait and pay 1927.2 on 2024-10-15; minimum balance 2100 protected throughout.
+request_92,34034,affordable_now,full_payment,2025-02-05:34034,2025-02-05,none,Pay 34034 today; minimum balance 28100 protected.
+request_93,1729.2,affordable_now,full_payment,2026-04-07:1729.2,2026-04-07,none,Pay 1729.2 today; minimum balance 1900 protected.
+request_94,572,affordable_now,full_payment,2024-12-04:572,2024-12-04,none,Pay 572 today; minimum balance 600 protected.
+request_95,57675.37,not_affordable,not_recommended,none,,none,Cannot afford request_95 safely within the horizon; ASP=57675.37 with minimum balance 145500 protected.
+request_96,43772.12,not_affordable,not_recommended,none,,none,Cannot afford request_96 safely within the horizon; ASP=43772.12 with minimum balance 56500 protected.
+request_97,2910.52,affordable_with_plan,installments,2024-03-19:8145.28|2024-04-19:8145.28|2024-05-20:8145.28,2024-04-15,none,Pay 2910.52 today via installments; minimum balance 29700 protected.
+request_98,13089.03,affordable_later,wait,2025-08-15:27148,2025-08-15,none,Wait and pay 27148 on 2025-08-15; minimum balance 30000 protected throughout.
+request_99,18062,affordable_now,full_payment,2026-07-04:18062,2026-07-04,none,Pay 18062 today; minimum balance 49100 protected.
+request_100,29616.17,affordable_with_plan,installments,2024-06-13:12866.19|2024-07-14:12866.19|2024-08-14:12866.19,2024-06-15,none,Pay 29616.17 today via installments; minimum balance 32500 protected.
+request_101,143500,affordable_now,full_payment,2025-11-03:143500,2025-11-03,none,Pay 143500 today; minimum balance 187400 protected.
+request_102,1716,affordable_with_plan,installments,2026-04-05:594.88|2026-05-05:594.88|2026-06-04:594.88,2026-04-05,none,Pay 1716 today via installments; minimum balance 900 protected.
+request_103,75432.49,not_affordable,not_recommended,none,,none,Cannot afford request_103 safely within the horizon; ASP=75432.49 with minimum balance 125500 protected.
+request_104,17204,affordable_now,full_payment,2025-02-04:17204,2025-02-04,none,Pay 17204 today; minimum balance 24700 protected.
+request_105,53500,affordable_now,full_payment,2026-06-08:53500,2026-06-08,none,Pay 53500 today; minimum balance 73900 protected.
+request_106,1063.14,affordable_later,wait,2025-01-15:2207.7,2025-01-15,none,Wait and pay 2207.7 on 2025-01-15; minimum balance 1200 protected throughout.
+request_107,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_108,31913.26,not_affordable,not_recommended,none,2026-08-07,none,Cannot afford request_108 safely within the horizon; ASP=31913.26 with minimum balance 24100 protected.
+request_109,695.65,affordable_with_plan,installments,2024-03-18:645.98|2024-04-18:645.98|2024-05-19:645.98,2024-04-15,none,Pay 695.65 today via installments; minimum balance 1700 protected.
+request_110,22352,affordable_with_plan,installments,2025-08-06:7748.69|2025-09-03:7748.69|2025-10-01:7748.69,2025-08-06,none,Pay 22352 today via installments; minimum balance 11200 protected.
+request_111,16625000,affordable_now,full_payment,2026-04-03:16625000,2026-04-03,none,Pay 16625000 today; minimum balance 23022800 protected.
+request_112,271.7,affordable_now,full_payment,2024-06-05:271.7,2024-06-05,none,Pay 271.7 today; minimum balance 500 protected.
+request_113,36500,affordable_now,full_payment,2026-09-04:36500,2026-09-04,none,Pay 36500 today; minimum balance 82300 protected.
+request_114,65300,affordable_now,full_payment,2026-01-04:65300,2026-01-04,none,Pay 65300 today; minimum balance 113400 protected.
+request_115,16371.71,affordable_later,wait,2024-10-15:80500,2024-10-15,none,Wait and pay 80500 on 2024-10-15; minimum balance 38800 protected throughout.
+request_116,26598.79,not_affordable,not_recommended,none,,none,Cannot afford request_116 safely within the horizon; ASP=26598.79 with minimum balance 80300 protected.
+request_117,880,affordable_now,full_payment,2026-07-05:880,2026-07-05,none,Pay 880 today; minimum balance 1000 protected.
+request_118,738.1,affordable_with_plan,installments,2024-12-07:255.87|2025-01-07:255.87|2025-02-07:255.87,2024-12-07,none,Pay 738.1 today via installments; minimum balance 600 protected.
+request_119,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_120,7714000,affordable_now,full_payment,2026-04-06:7714000,2026-04-06,none,Pay 7714000 today; minimum balance 20050300 protected.
+request_121,633.6,affordable_now,full_payment,2024-03-03:633.6,2024-03-03,none,Pay 633.6 today; minimum balance 800 protected.
+request_122,20558000,affordable_with_plan,installments,2025-08-05:7126773.33|2025-09-02:7126773.33|2025-09-30:7126773.33,2025-08-05,none,Pay 20558000 today via installments; minimum balance 12588500 protected.
+request_123,4076000,affordable_now,full_payment,2026-01-07:4076000,2026-01-07,none,Pay 4076000 today; minimum balance 18091200 protected.
+request_124,1480.83,affordable_with_plan,installments,2024-06-11:1076.12|2024-07-12:1076.12|2024-08-12:1076.12,2024-07-15,none,Pay 1480.83 today via installments; minimum balance 1600 protected.
+request_125,6468,affordable_now,full_payment,2025-11-06:6468,2025-11-06,none,Pay 6468 today; minimum balance 11300 protected.
+request_126,159600,affordable_now,full_payment,2026-07-03:159600,2026-07-03,none,Pay 159600 today; minimum balance 129700 protected.
+request_127,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_128,25168,affordable_now,full_payment,2025-02-07:25168,2025-02-07,none,Pay 25168 today; minimum balance 42600 protected.
+request_129,146.56,not_affordable,not_recommended,none,,none,Cannot afford request_129 safely within the horizon; ASP=146.56 with minimum balance 800 protected.
+request_130,1285.38,affordable_later,wait,2025-01-15:1978.8,2025-01-15,none,Wait and pay 1978.8 on 2025-01-15; minimum balance 1400 protected throughout.
+request_131,1487.73,affordable_with_plan,installments,2025-05-06:643.14|2025-06-03:643.14|2025-07-01:643.14,2025-05-15,none,Pay 1487.73 today via installments; minimum balance 1100 protected.
+request_132,379.86,affordable_now,full_payment,2026-01-05:379.86,2026-01-05,none,Pay 379.86 today; minimum balance 1100 protected.
+request_133,5432395.72,not_affordable,not_recommended,none,,none,Cannot afford request_133 safely within the horizon; ASP=5432395.72 with minimum balance 9986200 protected.
+request_134,7210010.38,affordable_later,wait,2025-09-15:21831000,2025-09-15,none,Wait and pay 21831000 on 2025-09-15; minimum balance 15902500 protected throughout.
+request_135,304.8,affordable_now,full_payment,2026-07-06:304.8,2026-07-06,none,Pay 304.8 today; minimum balance 500 protected.
+request_136,560.4,affordable_now,full_payment,2024-06-03:560.4,2024-06-03,none,Pay 560.4 today; minimum balance 1100 protected.
+request_137,35578.92,affordable_later,wait,2025-12-15:80100,2025-12-15,none,Wait and pay 80100 on 2025-12-15; minimum balance 71800 protected throughout.
+request_138,1117.90,affordable_with_plan,partial_payment,2026-04-07:1117.90|2026-04-15:139.04,2026-04-15,none,Pay 1117.90 today via partial_payment; minimum balance 2300 protected.
+request_139,2125.84,affordable_with_plan,installments,2024-09-07:802.88|2024-10-08:802.88|2024-11-08:802.88,2024-09-15,none,Pay 2125.84 today via installments; minimum balance 1500 protected.
+request_140,4591.4,not_affordable,not_recommended,none,,none,Cannot afford request_140 safely within the horizon; ASP=4591.4 with minimum balance 21600 protected.
+request_141,33077.62,not_affordable,not_recommended,none,2026-03-15,none,Cannot afford request_141 safely within the horizon; ASP=33077.62 with minimum balance 67300 protected.
+request_142,1263.6,affordable_now,full_payment,2024-12-05:1263.6,2024-12-05,none,Pay 1263.6 today; minimum balance 1700 protected.
+request_143,4466.6,affordable_later,wait,2025-06-15:12584,2025-06-15,none,Wait and pay 12584 on 2025-06-15; minimum balance 11300 protected throughout.
+request_144,233.34,affordable_now,full_payment,2026-07-04:233.34,2026-07-04,none,Pay 233.34 today; minimum balance 600 protected.
+request_145,66220.75,affordable_with_plan,installments,2024-03-20:75365.33|2024-04-20:75365.33|2024-05-21:75365.33,2024-04-15,none,Pay 66220.75 today via installments; minimum balance 155400 protected.
+request_146,26160.38,not_affordable,not_recommended,none,,none,Cannot afford request_146 safely within the horizon; ASP=26160.38 with minimum balance 108600 protected.
+request_147,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_148,10386.21,affordable_with_plan,installments,2024-06-14:7710.56|2024-07-15:7710.56|2024-08-15:7710.56,2024-07-15,none,Pay 10386.21 today via installments; minimum balance 20000 protected.
+request_149,23390.05,affordable_with_plan,installments,2025-11-18:12706.03|2025-12-16:12706.03|2026-01-13:12706.03,2025-12-15,none,Pay 23390.05 today via installments; minimum balance 42100 protected.
+request_150,496.1,affordable_with_plan,installments,2026-01-06:171.98|2026-02-05:171.98|2026-03-07:171.98,2026-01-06,none,Pay 496.1 today via installments; minimum balance 700 protected.
+request_151,26999000,affordable_now,full_payment,2024-09-03:26999000,2024-09-03,none,Pay 26999000 today; minimum balance 31633600 protected.
+request_152,13185.27,affordable_with_plan,installments,2025-02-12:4812.43|2025-03-12:4812.43|2025-04-09:4812.43,2025-02-15,none,Pay 13185.27 today via installments; minimum balance 11900 protected.
+request_153,311.24,not_affordable,not_recommended,none,,none,Cannot afford request_153 safely within the horizon; ASP=311.24 with minimum balance 1400 protected.
+request_154,1625.8,affordable_with_plan,installments,2024-12-04:563.61|2025-01-04:563.61|2025-02-04:563.61,2024-12-04,none,Pay 1625.8 today via installments; minimum balance 1300 protected.
+request_155,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_156,10775.31,affordable_later,wait,2026-05-15:43076,2026-05-15,none,Wait and pay 43076 on 2026-05-15; minimum balance 26900 protected throughout.
+request_157,6968905.82,affordable_later,wait,2024-04-15:23503000,2024-04-15,none,Wait and pay 23503000 on 2024-04-15; minimum balance 15714100 protected throughout.
+request_158,242600,affordable_with_plan,installments,2025-08-07:84101.33|2025-09-04:84101.33|2025-10-02:84101.33,2025-08-07,none,Pay 242600 today via installments; minimum balance 131400 protected.
+request_159,10483.16,not_affordable,not_recommended,none,,none,Cannot afford request_159 safely within the horizon; ASP=10483.16 with minimum balance 8700 protected.
+request_160,643.61,affordable_with_plan,installments,2024-06-13:432.05|2024-07-14:432.05|2024-08-14:432.05,2024-06-15,none,Pay 643.61 today via installments; minimum balance 1200 protected.
+request_161,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_162,4404851.23,not_affordable,not_recommended,none,,none,Cannot afford request_162 safely within the horizon; ASP=4404851.23 with minimum balance 24161100 protected.
+request_163,13124423.31,affordable_with_plan,installments,2024-09-10:6692053.33|2024-10-11:6692053.33|2024-11-11:6692053.33,2024-09-15,none,Pay 13124423.31 today via installments; minimum balance 26728700 protected.
+request_164,27018000,affordable_with_plan,installments,2025-02-11:9366240|2025-03-11:9366240|2025-04-08:9366240,2025-02-04,none,Pay 27018000 today via installments; minimum balance 29550500 protected.
+request_165,80600,affordable_now,full_payment,2026-04-06:80600,2026-04-06,none,Pay 80600 today; minimum balance 95000 protected.
+request_166,2907.6,affordable_with_plan,installments,2024-12-03:1007.97|2025-01-03:1007.97|2025-02-03:1007.97,2024-12-03,none,Pay 2907.6 today via installments; minimum balance 1700 protected.
+request_167,43802,affordable_now,full_payment,2025-05-05:43802,2025-05-05,none,Pay 43802 today; minimum balance 31200 protected.
+request_168,49380,not_affordable,not_recommended,none,2026-01-07,none,Cannot afford request_168 safely within the horizon; ASP=49380 with minimum balance 114400 protected.
+request_169,41976,affordable_now,full_payment,2024-03-04:41976,2024-03-04,none,Pay 41976 today; minimum balance 18700 protected.
+request_170,34275921.57,affordable_with_plan,installments,2025-08-06:12804480|2025-09-03:12804480|2025-10-01:12804480,2025-08-15,none,Pay 34275921.57 today via installments; minimum balance 24715800 protected.
+request_171,106.11,not_affordable,not_recommended,none,,none,Cannot afford request_171 safely within the horizon; ASP=106.11 with minimum balance 500 protected.
+request_172,10200,affordable_with_plan,installments,2024-06-05:5304|2024-07-03:5304,2024-06-05,none,Pay 10200 today via installments; minimum balance 27200 protected.
+request_173,74300.05,affordable_with_plan,installments,2025-11-21:39173.33|2025-12-19:39173.33|2026-01-16:39173.33,2025-11-15,none,Pay 74300.05 today via installments; minimum balance 79100 protected.
+request_174,1146.2,affordable_with_plan,installments,2026-04-04:397.35|2026-05-04:397.35|2026-06-03:397.35,2026-04-04,none,Pay 1146.2 today via installments; minimum balance 700 protected.
+request_175,2346.3,affordable_now,full_payment,2024-09-06:2346.3,2024-09-06,none,Pay 2346.3 today; minimum balance 1700 protected.
+request_176,1045.46,not_affordable,not_recommended,none,2025-04-03,none,Cannot afford request_176 safely within the horizon; ASP=1045.46 with minimum balance 600 protected.
+request_177,1017.6,affordable_now,full_payment,2026-01-05:1017.6,2026-01-05,none,Pay 1017.6 today; minimum balance 1300 protected.
+request_178,2938.1,affordable_with_plan,installments,2024-12-07:1018.54|2025-01-07:1018.54|2025-02-07:1018.54,2024-12-07,none,Pay 2938.1 today via installments; minimum balance 1400 protected.
+request_179,28008647.03,affordable_later,wait,2025-05-15:41648000,2025-05-15,none,Wait and pay 41648000 on 2025-05-15; minimum balance 41430800 protected throughout.
+request_180,66500,affordable_now,full_payment,2026-07-06:66500,2026-07-06,none,Pay 66500 today; minimum balance 37300 protected.
+request_181,690.92,not_affordable,not_recommended,none,,none,Cannot afford request_181 safely within the horizon; ASP=690.92 with minimum balance 2000 protected.
+request_182,65714,affordable_now,full_payment,2025-08-05:65714,2025-08-05,none,Pay 65714 today; minimum balance 31100 protected.
+request_183,25488344.56,affordable_with_plan,installments,2026-04-10:9313546.67|2026-05-10:9313546.67|2026-06-09:9313546.67,2026-04-15,none,Pay 25488344.56 today via installments; minimum balance 11878300 protected.
+request_184,22471.27,not_affordable,not_recommended,none,,none,Cannot afford request_184 safely within the horizon; ASP=22471.27 with minimum balance 110800 protected.
+request_185,583.02,affordable_later,wait,2025-12-15:1257.3,2025-12-15,none,Wait and pay 1257.3 on 2025-12-15; minimum balance 1300 protected throughout.
+request_186,26554,affordable_now,full_payment,2026-01-03:26554,2026-01-03,none,Pay 26554 today; minimum balance 22000 protected.
+request_187,44971.01,affordable_later,wait,2024-10-15:187500,2024-10-15,none,Wait and pay 187500 on 2024-10-15; minimum balance 128300 protected throughout.
+request_188,318.3,not_affordable,not_recommended,none,,none,Cannot afford request_188 safely within the horizon; ASP=318.3 with minimum balance 900 protected.
+request_189,488.4,affordable_now,full_payment,2026-07-04:488.4,2026-07-04,none,Pay 488.4 today; minimum balance 400 protected.
+request_190,780.71,affordable_later,wait,2025-01-15:2557.5,2025-01-15,none,Wait and pay 2557.5 on 2025-01-15; minimum balance 1600 protected throughout.
+request_191,664.4,affordable_now,full_payment,2025-05-03:664.4,2025-05-03,none,Pay 664.4 today; minimum balance 500 protected.
+request_192,297.26,not_affordable,not_recommended,none,2026-06-15,none,Cannot afford request_192 safely within the horizon; ASP=297.26 with minimum balance 1000 protected.
+request_193,847.52,affordable_with_plan,installments,2024-03-21:420.23|2024-04-21:420.23|2024-05-22:420.23,2024-04-15,none,Pay 847.52 today via installments; minimum balance 1000 protected.
+request_194,45781.81,affordable_later,wait,2025-10-15:132800,2025-10-15,none,Wait and pay 132800 on 2025-10-15; minimum balance 113600 protected throughout.
+request_195,1170.4,affordable_with_plan,installments,2026-01-09:405.74|2026-02-08:405.74|2026-03-10:405.74,2026-01-06,none,Pay 1170.4 today via installments; minimum balance 700 protected.
+request_196,762.3,affordable_now,full_payment,2024-06-03:762.3,2024-06-03,none,Pay 762.3 today; minimum balance 500 protected.
+request_197,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_198,185800,affordable_now,full_payment,2026-07-07:185800,2026-07-07,none,Pay 185800 today; minimum balance 124300 protected.
+request_199,23674000,affordable_with_plan,installments,2024-09-07:8206986.67|2024-10-08:8206986.67|2024-11-08:8206986.67,2024-09-04,none,Pay 23674000 today via installments; minimum balance 25359500 protected.
+request_200,21717000,affordable_now,full_payment,2025-02-06:21717000,2025-02-06,none,Pay 21717000 today; minimum balance 20114600 protected.
+request_201,23997000,affordable_now,full_payment,2026-04-03:23997000,2026-04-03,none,Pay 23997000 today; minimum balance 17304500 protected.
+request_202,123900,affordable_now,full_payment,2024-12-05:123900,2024-12-05,none,Pay 123900 today; minimum balance 147800 protected.
+request_203,1442.1,affordable_with_plan,installments,2025-05-10:499.93|2025-06-07:499.93|2025-07-05:499.93,2025-05-07,none,Pay 1442.1 today via installments; minimum balance 1400 protected.
+request_204,588.74,affordable_now,full_payment,2026-01-04:588.74,2026-01-04,none,Pay 588.74 today; minimum balance 1300 protected.
+request_205,10621000,affordable_now,full_payment,2024-03-06:10621000,2024-03-06,none,Pay 10621000 today; minimum balance 13994300 protected.
+request_206,1404.7,affordable_with_plan,installments,2025-08-03:486.96|2025-08-31:486.96|2025-09-28:486.96,2025-08-03,none,Pay 1404.7 today via installments; minimum balance 900 protected.
+request_207,9190.41,affordable_later,wait,2026-07-15:11830,2026-07-15,none,Wait and pay 11830 on 2026-07-15; minimum balance 13600 protected throughout.
+request_208,4413000,affordable_now,full_payment,2024-06-07:4413000,2024-06-07,none,Pay 4413000 today; minimum balance 10470700 protected.
+request_209,2870.89,not_affordable,not_recommended,none,,none,Cannot afford request_209 safely within the horizon; ASP=2870.89 with minimum balance 18400 protected.
+request_210,1098.34,affordable_with_plan,partial_payment,2026-04-06:1098.34|2026-04-15:261.68,2026-04-15,none,Pay 1098.34 today via partial_payment; minimum balance 2000 protected.
+request_211,563.70,affordable_later,wait,2024-10-15:1788.6,2024-10-15,none,Wait and pay 1788.6 on 2024-10-15; minimum balance 1500 protected throughout.
+request_212,9947518.86,not_affordable,not_recommended,none,,none,Cannot afford request_212 safely within the horizon; ASP=9947518.86 with minimum balance 29579800 protected.
+request_213,3362.4,affordable_with_plan,installments,2026-01-21:1165.63|2026-02-20:1165.63|2026-03-22:1165.63,2026-01-07,none,Pay 3362.4 today via installments; minimum balance 2100 protected.
+request_214,69750,affordable_with_plan,installments,2024-12-04:36270|2025-01-01:36270,2024-12-04,none,Pay 69750 today via installments; minimum balance 174900 protected.
+request_215,29986,affordable_with_plan,installments,2025-05-09:10395.15|2025-06-06:10395.15|2025-07-04:10395.15,2025-05-06,none,Pay 29986 today via installments; minimum balance 15700 protected.
+request_216,705.78,affordable_later,wait,2026-09-15:3332.4,2026-09-15,none,Wait and pay 3332.4 on 2026-09-15; minimum balance 1800 protected throughout.
+request_217,22874.52,affordable_with_plan,installments,2024-03-19:12889.07|2024-04-19:12889.07|2024-05-20:12889.07,2024-04-15,none,Pay 22874.52 today via installments; minimum balance 26800 protected.
+request_218,30115035.22,affordable_with_plan,installments,2025-08-07:21195893.33|2025-09-04:21195893.33|2025-10-02:21195893.33,2025-09-15,none,Pay 30115035.22 today via installments; minimum balance 34477200 protected.
+request_219,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_220,691.56,not_affordable,not_recommended,none,,none,Cannot afford request_220 safely within the horizon; ASP=691.56 with minimum balance 1100 protected.
+request_221,109800,affordable_now,full_payment,2025-11-03:109800,2025-11-03,none,Pay 109800 today; minimum balance 81500 protected.
+request_222,34078,affordable_now,full_payment,2026-01-05:34078,2026-01-05,none,Pay 34078 today; minimum balance 27300 protected.
+request_223,898.7,affordable_now,full_payment,2024-09-07:898.7,2024-09-07,none,Pay 898.7 today; minimum balance 800 protected.
+request_224,10327000,affordable_with_plan,installments,2025-02-04:5370040|2025-03-04:5370040,2025-02-04,none,Pay 10327000 today via installments; minimum balance 22187600 protected.
+request_225,12404603.82,affordable_with_plan,installments,2026-07-20:7647120|2026-08-19:7647120|2026-09-18:7647120,2026-08-15,none,Pay 12404603.82 today via installments; minimum balance 17670700 protected.
+request_226,157000,affordable_now,full_payment,2024-12-03:157000,2024-12-03,none,Pay 157000 today; minimum balance 209400 protected.
+request_227,22845.85,not_affordable,not_recommended,none,,none,Cannot afford request_227 safely within the horizon; ASP=22845.85 with minimum balance 62900 protected.
+request_228,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_229,630.19,affordable_with_plan,installments,2024-03-18:529.29|2024-04-18:529.29|2024-05-19:529.29,2024-04-15,none,Pay 630.19 today via installments; minimum balance 1000 protected.
+request_230,3537.6,affordable_now,full_payment,2025-08-06:3537.6,2025-08-06,none,Pay 3537.6 today; minimum balance 2000 protected.
+request_231,35706,affordable_with_plan,installments,2026-01-06:12378.08|2026-02-05:12378.08|2026-03-07:12378.08,2026-01-03,none,Pay 35706 today via installments; minimum balance 24300 protected.
+request_232,1118.4,affordable_later,wait,2024-07-15:1970.1,2024-07-15,none,Wait and pay 1970.1 on 2024-07-15; minimum balance 2400 protected throughout.
+request_233,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_234,404.97,affordable_later,wait,2026-08-15:1213.3,2026-08-15,none,Wait and pay 1213.3 on 2026-08-15; minimum balance 700 protected throughout.
+request_235,967.2,affordable_now,full_payment,2024-09-06:967.2,2024-09-06,none,Pay 967.2 today; minimum balance 700 protected.
+request_236,6900019.57,not_affordable,not_recommended,none,,none,Cannot afford request_236 safely within the horizon; ASP=6900019.57 with minimum balance 16768600 protected.
+request_237,23826000,affordable_now,full_payment,2026-04-05:23826000,2026-04-05,none,Pay 23826000 today; minimum balance 22431500 protected.
+request_238,663.6,affordable_with_plan,installments,2024-12-07:230.05|2025-01-07:230.05|2025-02-07:230.05,2024-12-07,none,Pay 663.6 today via installments; minimum balance 700 protected.
+request_239,511.00,not_affordable,not_recommended,none,,none,Cannot afford request_239 safely within the horizon; ASP=511.00 with minimum balance 600 protected.
+request_240,20020,not_affordable,not_recommended,none,,none,Cannot afford request_240 safely within the horizon; ASP=20020 with minimum balance 52800 protected.
+request_241,21052000,affordable_with_plan,installments,2024-03-17:7298026.67|2024-04-17:7298026.67|2024-05-18:7298026.67,2024-03-03,none,Pay 21052000 today via installments; minimum balance 19252000 protected.
+request_242,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_243,17468,affordable_now,full_payment,2026-07-07:17468,2026-07-07,none,Pay 17468 today; minimum balance 19900 protected.
+request_244,39597.94,not_affordable,not_recommended,none,,none,Cannot afford request_244 safely within the horizon; ASP=39597.94 with minimum balance 45900 protected.
+request_245,46948.41,affordable_later,wait,2025-12-15:128500,2025-12-15,none,Wait and pay 128500 on 2025-12-15; minimum balance 94600 protected throughout.
+request_246,64086,affordable_with_plan,installments,2026-04-03:22216.48|2026-05-03:22216.48|2026-06-02:22216.48,2026-04-03,none,Pay 64086 today via installments; minimum balance 39300 protected.
+request_247,1059.3,affordable_now,full_payment,2024-09-05:1059.3,2024-09-05,none,Pay 1059.3 today; minimum balance 1300 protected.
+request_248,1965.6,not_affordable,not_recommended,none,2025-02-07,none,Cannot afford request_248 safely within the horizon; ASP=1965.6 with minimum balance 1300 protected.
+request_249,475.62,affordable_later,wait,2026-02-15:643.2,2026-02-15,none,Wait and pay 643.2 on 2026-02-15; minimum balance 600 protected throughout.
+request_250,17404.9,not_affordable,not_recommended,none,,none,Cannot afford request_250 safely within the horizon; ASP=17404.9 with minimum balance 35300 protected.
+request_251,829.30,not_affordable,not_recommended,none,,none,Cannot afford request_251 safely within the horizon; ASP=829.30 with minimum balance 1300 protected.
+request_252,7644910.53,affordable_later,wait,2026-08-15:28082000,2026-08-15,none,Wait and pay 28082000 on 2026-08-15; minimum balance 15152200 protected throughout.
+request_253,1635.50,affordable_with_plan,installments,2024-03-21:984.6|2024-04-21:984.6|2024-05-22:984.6,2024-04-15,none,Pay 1635.50 today via installments; minimum balance 2300 protected.
+request_254,1057.65,affordable_later,wait,2025-09-15:3535.2,2025-09-15,none,Wait and pay 3535.2 on 2025-09-15; minimum balance 2500 protected throughout.
+request_255,3345000,affordable_now,full_payment,2026-04-06:3345000,2026-04-06,none,Pay 3345000 today; minimum balance 9813900 protected.
+request_256,180215.52,affordable_with_plan,installments,2024-06-10:75816|2024-07-11:75816|2024-08-11:75816,2024-06-15,none,Pay 180215.52 today via installments; minimum balance 168600 protected.
+request_257,643.13,affordable_later,wait,2025-12-15:1352.4,2025-12-15,none,Wait and pay 1352.4 on 2025-12-15; minimum balance 1600 protected throughout.
+request_258,1113.6,affordable_now,full_payment,2026-01-07:1113.6,2026-01-07,none,Pay 1113.6 today; minimum balance 500 protected.
+request_259,529.3,affordable_later,wait,2024-09-15:935,2024-09-15,none,Wait and pay 935 on 2024-09-15; minimum balance 600 protected throughout.
+request_260,10591746.09,affordable_with_plan,partial_payment,2025-02-06:10591746.09|2025-04-15:41487253.91,2025-04-15,none,Pay 10591746.09 today via partial_payment; minimum balance 20727700 protected.
+request_261,1830.4,affordable_now,full_payment,2026-07-03:1830.4,2026-07-03,none,Pay 1830.4 today; minimum balance 1500 protected.
+request_262,9236000,affordable_now,full_payment,2024-12-05:9236000,2024-12-05,none,Pay 9236000 today; minimum balance 31018500 protected.
+request_263,9167.54,not_affordable,not_recommended,none,2025-07-15,none,Cannot afford request_263 safely within the horizon; ASP=9167.54 with minimum balance 24100 protected.
+request_264,26798.22,affordable_later,wait,2026-05-15:111300,2026-05-15,none,Wait and pay 111300 on 2026-05-15; minimum balance 59500 protected throughout.
+request_265,45970,affordable_now,full_payment,2024-03-06:45970,2024-03-06,none,Pay 45970 today; minimum balance 189700 protected.
+request_266,935,affordable_with_plan,installments,2025-08-03:324.13|2025-08-31:324.13|2025-09-28:324.13,2025-08-03,none,Pay 935 today via installments; minimum balance 900 protected.
+request_267,1844.04,affordable_with_plan,installments,2026-01-08:667.33|2026-02-07:667.33|2026-03-09:667.33,2026-01-15,none,Pay 1844.04 today via installments; minimum balance 1500 protected.
+request_268,1134.52,affordable_with_plan,installments,2024-06-14:841.22|2024-07-15:841.22|2024-08-15:841.22,2024-07-15,none,Pay 1134.52 today via installments; minimum balance 1400 protected.
+request_269,0,not_affordable,not_recommended,none,,none,Cannot recommend: material unresolved evidence prevents a provably safe amount (conservative ASP=0).
+request_270,226.30,not_affordable,not_recommended,none,2026-09-15,none,Cannot afford request_270 safely within the horizon; ASP=226.30 with minimum balance 1400 protected.
+request_271,29004.39,affordable_later,wait,2024-10-15:91300,2024-10-15,none,Wait and pay 91300 on 2024-10-15; minimum balance 58200 protected throughout.
+request_272,6660377.83,affordable_with_plan,installments,2025-02-12:4709466.67|2025-03-12:4709466.67|2025-04-09:4709466.67,2025-02-15,none,Pay 6660377.83 today via installments; minimum balance 7508600 protected.
+request_273,10756514.78,affordable_with_plan,partial_payment,2026-04-07:10756514.78|2026-04-15:5104485.22,2026-04-15,none,Pay 10756514.78 today via partial_payment; minimum balance 18774600 protected.
+request_274,2567.40,affordable_with_plan,installments,2024-12-04:940.75|2025-01-04:940.75|2025-02-04:940.75,2024-12-15,none,Pay 2567.40 today via installments; minimum balance 1800 protected.
+request_275,15884000,affordable_now,full_payment,2025-05-06:15884000,2025-05-06,none,Pay 15884000 today; minimum balance 12760100 protected.
