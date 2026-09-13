@@ -136,6 +136,12 @@ def main(argv: list[str] | None = None) -> int:
         return _run_diagnose()
     if "--plan" in argv:
         return _run_plan()
+    if "--output" in argv:
+        from code.production_run import run_final_production
+        result = run_final_production()
+        print(f"output.csv generated: {len(result['decisions'])} decisions, "
+              f"SHA-256={result['sha256']}")
+        return 0
     try:
         return _run_foundation()
     except SafeSpendError as exc:
