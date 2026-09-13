@@ -98,7 +98,9 @@ D21 essential-provision safety net, D22 audit+horizon. Phase 2.2 split recurrenc
 into FIXED COMMITMENTS vs VARIABLE ESSENTIAL spending (D10 rev. 3, D21 rev. 2,
 D23): protected variable streams receive exactly one forward treatment (aggregate
 reserve), with UNACCOUNTED=0 enforced by the coverage audit. E2/E3 remain OPEN
-for Phase 3.)
+for Phase 3. D24 (Phase 2.3) adds the boundary-oracle finding: official asp/earliest
+embed the reference implementation's hidden future stream; plan-level safety is
+oracle-verified (Test D 17/17), exact asp values are documented mismatches.)
 
 - E1. **Recurrence detection**: an event series repeats when the same user+category+direction shows regular periodic settlement history (e.g. monthly salary on the 15th); one-off spikes explicitly flagged by evidence (e.g. message_02 "one-time adjustment") are excluded from the projection. Recurring amounts use a conservative value from history (e.g. recent max/last), not an optimistic average.
 - E2. **`max_installment_months` semantics**: an option is allowed when its total span (`first_payment_date + (number_of_payments-1) × payment_frequency_days` minus request context) fits within `max_installment_months` months (approx. 30-day months). To be pinned by regression: user_02 (max 7) accepted a 3×30d option and the 18×31d option would be excluded under any reasonable reading.
