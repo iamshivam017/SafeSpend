@@ -107,12 +107,17 @@ class HypotheticalPaymentTests(unittest.TestCase):
                                                               Decimal("900"))])
         self.assertEqual(r.state, SafetyState.UNSAFE)  # 1000-900=100 < 200
 
-    def test_payment_after_day90_ignored(self):
+    def test_payment_after_day90_rejected(self):
+        # review fix: out-of-window payments raise instead of being silently
+        # ignored (silent skipping would fake feasibility)
         p = profile(balance="1000", minimum="200")
-        r = simulate(p, D, [], hypothetical_payments=[Payment(D + timedelta(days=91),
+        from code.errors import DataError
+        with self.assertRaises(DataError):
+            simulate(p, D, [], hypothetical_payments=[Payment(D + timedelta(days=91),
                                                               Decimal("900"))])
-        self.assertEqual(r.state, SafetyState.SAFE)
-        self.assertEqual(r.ending_balance, Decimal("1000"))
+        with self.assertRaises(DataError):
+            simulate(p, D, [], hypothetical_payments=[Payment(D - timedelta(days=1),
+                                                              Decimal("900"))])
 
 
 class UnresolvedEvidenceTests(unittest.TestCase):

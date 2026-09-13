@@ -124,6 +124,24 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: AGENTS.md 6.3; user Phase 2 directive section 11; dataset amount analysis.
 - Revisit condition: Phase 5 calibration evidence.
 
+## D20 — CodeRabbit review round: engine-hardening policy changes
+- Date: 2026-09-13
+- Decision: an independent CodeRabbit review of the Phase 2 engine (agent review + fix verification, two passes) drove these policy/behavior changes, all regression-tested in tests/test_phase2_review_fixes.py:
+  (a) cyclic/self `linked_event_id` chains raise DataError (fail-fast; previously hung);
+  (b) credit representative amount is the exact numeric Decimal median (was a lexicographic string median — misstated mixed-magnitude income);
+  (c) a series silent for more than `max_silent_cadences` (default 2) cadences before request_date no longer projects (no phantom income; request_12's minimum_projected_balance corrected 185,979.44 -> 102,817.10);
+  (d) projected occurrences strictly after request_date only (a same-day projected credit is never available cash; applies to debits too — documented marginally anti-conservative);
+  (e) UNSAFE outranks UNRESOLVED (a proven floor violation is certain information);
+  (f) out-of-window hypothetical payments raise DataError (never silently ignored);
+  (g) lifecycle terminal-drop requires direction+amount match; duplicate-substance collapse includes pending rows (documented under-count safety net);
+  (h) fixed-gap cadences (7/10/14/21d observed) now actually implemented via the dominant-gap rule (monthly band checked first). This legitimately flipped request_09's baseline to UNSAFE (groceries 10d / dining 21d series now detected; zero actual/projection clashes).
+- Status: DECIDED; independent re-verification verdict: "engine is now sound to build Phase 3 on".
+- Alternatives: leave findings to Phase 5 (rejected — C2/C3 corrupt the numbers Phase 3 plans against).
+- Why: review findings were empirically demonstrated on real dataset users.
+- Trade-offs: none beyond documented safety nets; 14 new regression tests lock the fixes.
+- Evidence/source: CodeRabbit review + fix-verification reports (2026-09-13); commit history.
+- Revisit condition: Phase 5 calibration may tune max_silent_cadences and the same-day rules.
+
 ## D19 — Starting-balance snapshot interpretation
 - Date: 2026-09-13
 - Decision: `current_available_balance` is the balance AS OF request_date (day 0). Settled/scheduled events effective BEFORE request_date are already inside it and are never re-applied; only cash movements with effective date in [request_date, request_date+90] are applied. Historical blank-amount events are therefore out of scope (not UNRESOLVED).

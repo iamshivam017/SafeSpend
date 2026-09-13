@@ -15,7 +15,6 @@ from dataclasses import dataclass
 from datetime import date, timedelta
 from decimal import Decimal
 
-from ..errors import DataError
 from ..indexes import Indexes
 from ..schemas import FinancialProfile
 from .currency import CurrencyConverter
@@ -119,6 +118,3 @@ def detect_patterns_for_user(user_id: str, indexes: Indexes,
     from .recurrence import DEFAULT_PARAMS, detect_recurring_patterns
     events = indexes.events_by_user_id.get(user_id, [])
     return detect_recurring_patterns(events, params=params or DEFAULT_PARAMS)
-
-
-_ = DataError  # re-exported for callers' convenience

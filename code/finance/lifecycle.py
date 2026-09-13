@@ -34,6 +34,7 @@ from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
 
+from ..errors import DataError
 from ..schemas import EventDirection, EventStatus, FinancialEvent
 
 
@@ -89,20 +90,29 @@ class LifecycleResult:
 
 
 def _group_lifecycles(events: list[FinancialEvent]) -> list[list[FinancialEvent]]:
-    """Union events connected by linked_event_id (child -> parent) into groups."""
+    """Union events connected by linked_event_id (child -> parent) into groups.
+
+    Cycles and self-links in linked_event_id are structural errors (they would
+    otherwise hang resolution) — raised as DataError, never silently tolerated.
+    """
     by_id = {e.event_id: e for e in events}
     parent_of: dict[str, str] = {}
+    for e in events:
+        if e.linked_event_id:
+            if e.linked_event_id == e.event_id:
+                raise DataError(f"event {e.event_id} links to itself", identifier=e.event_id)
+            parent_of[e.event_id] = e.linked_event_id
 
     def find(x: str) -> str:
+        visited = [x]
         while x in parent_of:
             x = parent_of[x]
+            if x in visited:
+                raise DataError(f"cyclic linked_event_id chain at {x!r}", identifier=x)
+            visited.append(x)
             if x not in by_id:  # link to an event not supplied: root at the missing id
                 break
         return x
-
-    for e in events:
-        if e.linked_event_id:
-            parent_of[e.event_id] = e.linked_event_id
 
     groups: dict[str, list[FinancialEvent]] = {}
     for e in events:
@@ -178,21 +188,23 @@ def _drop_same_group_pending_duplicates(cash_events: list[ResolvedCashEvent],
                                         result: LifecycleResult) -> list[ResolvedCashEvent]:
     """Lifecycle-group double-count prevention.
 
-    A pending debit inside a lifecycle group is dropped when:
-    - the group contains a settled record with the same direction and amount
+    A pending debit that produced a reserved cash event is dropped when:
+    - the group contains a settled record with the same direction AND amount
       (re-presented charge: e.g. the observed settled->pending shopping pairs,
       identical amounts 11 days apart — counting both would double-count); or
-    - the group contains a cancelled or failed record (the movement was
-      explicitly resolved away).
-    Distinct pending movements (different amount) remain reserved.
+    - the group contains a cancelled/failed record of the SAME direction and
+      amount (the corresponding movement was explicitly resolved away).
+    Distinct pending movements (different amount/direction) remain reserved —
+    terminal records of unrelated movements never suppress a live debit.
     """
-    events_by_id = {e.event_id: e for group in groups for e in group}
     group_of: dict[str, int] = {}
     for gi, group in enumerate(groups):
         for e in group:
             group_of[e.event_id] = gi
 
     drop: set[str] = set()
+    produced_pending = {c.source_event_ids[0]: c for c in cash_events
+                        if c.basis == "pending_debit_reserved"}
     for gi, group in enumerate(groups):
         pending_debits = [e for e in group
                           if e.status == EventStatus.PENDING and e.direction == EventDirection.DEBIT]
@@ -200,36 +212,43 @@ def _drop_same_group_pending_duplicates(cash_events: list[ResolvedCashEvent],
             continue
         settled_same = [e for e in group if e.status == EventStatus.SETTLED
                         and e.direction == EventDirection.DEBIT and e.amount is not None]
-        terminal = [e for e in group
-                    if e.status in (EventStatus.CANCELLED, EventStatus.FAILED)]
+        terminal_debits = [e for e in group
+                           if e.status in (EventStatus.CANCELLED, EventStatus.FAILED)
+                           and e.direction == EventDirection.DEBIT and e.amount is not None]
         for pending in pending_debits:
-            if terminal:
-                drop.add(pending.event_id)
-                result.ignored.append(IgnoredRecord(
-                    pending.event_id,
-                    f"pending movement resolved by a {terminal[0].status.value} record "
-                    f"in the same lifecycle group"))
-                continue
+            if pending.event_id not in produced_pending:
+                continue  # already historical/blank: classified elsewhere; do not double-log
             representation = [s for s in settled_same
                               if s.amount == pending.amount
                               and abs((pending.event_date - s.event_date).days) <= 45]
+            terminal_match = [t for t in terminal_debits if t.amount == pending.amount]
             if representation:
                 drop.add(pending.event_id)
                 result.ignored.append(IgnoredRecord(
                     pending.event_id,
                     f"pending re-presentation of settled {representation[0].event_id} "
                     f"(same amount, same lifecycle; double-count prevention)"))
-    _ = events_by_id
+            elif terminal_match:
+                drop.add(pending.event_id)
+                result.ignored.append(IgnoredRecord(
+                    pending.event_id,
+                    f"pending movement matches a {terminal_match[0].status.value} record "
+                    f"in the same lifecycle group (explicitly resolved away)"))
     return [c for c in cash_events if c.source_event_ids[0] not in drop]
 
 
 def _collapse_duplicate_substance(cash_events: list[ResolvedCashEvent],
                                   result: LifecycleResult) -> list[ResolvedCashEvent]:
-    """Collapse identical settled/scheduled substance rows (duplicate records)."""
+    """Collapse identical settled/scheduled/pending substance rows (duplicate records).
+
+    Known limitation (documented): two genuinely distinct same-day expenses with
+    identical amount/category/basis are also collapsed — acceptable as a safety
+    net; Phase 3/5 should be aware it slightly under-counts such spend.
+    """
     seen: dict[tuple, ResolvedCashEvent] = {}
     kept: list[ResolvedCashEvent] = []
     for c in cash_events:
-        if c.basis in ("settled", "scheduled"):
+        if c.basis in ("settled", "scheduled", "pending_debit_reserved"):
             signature = (c.effective_date, c.direction, c.amount, c.currency,
                          c.category, c.basis)
             if signature in seen:

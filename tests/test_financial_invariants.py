@@ -49,21 +49,51 @@ class PropertyInvariantTests(unittest.TestCase):
         self.assertTrue(removing_credit_cannot_improve_minimum(self.P, D, self.BASE, credit))
 
     def test_cancelled_debit_does_not_reduce_balance(self):
-        # cancelled events never enter flows (lifecycle rule); simulate both ways
-        base = min_balance(self.P, D, self.BASE)
-        with_cancelled = min_balance(self.P, D, self.BASE)  # cancelled = absent
-        self.assertEqual(base, with_cancelled)
+        # a cancelled debit must behave EXACTLY like its absence: resolving a
+        # lifecycle containing only a cancelled event yields zero cash flows
+        cancelled = ev("c1", amount="500", status=__import__("code.schemas", fromlist=["EventStatus"]).EventStatus.CANCELLED,
+                       event_date=D, settlement=D)
+        result = resolve_lifecycle([cancelled], D)
+        self.assertEqual(result.cash_events, [])
+        p = profile(balance="1000", minimum="200")
+        with_event = simulate(p, D, [], unresolved_evidence=result.unresolved,
+                              include_trace=True)
+        without = simulate(p, D, [], include_trace=True)
+        self.assertEqual(with_event.ending_balance, without.ending_balance)
+        self.assertEqual(with_event.minimum_projected_balance,
+                         without.minimum_projected_balance)
 
     def test_pending_credit_cannot_increase_balance(self):
-        # pending credits are dropped by lifecycle; a simulation given one must
-        # not differ from one without it (they never become CashFlows)
-        r = simulate(self.P, D, self.BASE)
-        self.assertEqual(r.minimum_projected_balance,
-                         min_balance(self.P, D, self.BASE))
+        # a pending credit must behave exactly like its absence (never counted)
+        from code.schemas import EventDirection, EventStatus
+        pending_credit = ev("pc1", direction=EventDirection.CREDIT, amount="900",
+                            status=EventStatus.PENDING, event_date=D,
+                            settlement=D + timedelta(days=5))
+        result = resolve_lifecycle([pending_credit], D)
+        self.assertEqual(result.cash_events, [])  # dropped by lifecycle
+        p = profile(balance="1000", minimum="200")
+        # adversarial check: WITHOUT the rule, this credit would lift 1000 -> 1900
+        with_credit_flow = simulate(p, D, [flow("900", D + timedelta(days=5))])
+        self.assertEqual(with_credit_flow.ending_balance, Decimal("1900"))
+        # with the rule applied, the engine must keep the worse (correct) number
+        with_event = simulate(p, D, [], unresolved_evidence=result.unresolved)
+        self.assertEqual(with_event.ending_balance, Decimal("1000"))
 
     def test_unrealized_investment_cannot_increase_cash(self):
-        r = simulate(self.P, D, self.BASE)
-        self.assertEqual(r.minimum_projected_balance, min_balance(self.P, D, self.BASE))
+        # an unrealized valuation must behave exactly like its absence
+        from code.schemas import EventDirection, EventType, EventStatus
+        valuation = ev("uv1", type=EventType.INVESTMENT_VALUATION,
+                       direction=EventDirection.NON_CASH, amount="5000",
+                       status=EventStatus.UNREALIZED, event_date=D + timedelta(days=3),
+                       settlement=None)
+        result = resolve_lifecycle([valuation], D)
+        self.assertEqual(result.cash_events, [])
+        p = profile(balance="1000", minimum="200")
+        # adversarial check: if the valuation were cash, min balance would jump
+        as_cash = simulate(p, D, [flow("5000", D + timedelta(days=3))])
+        self.assertEqual(as_cash.ending_balance, Decimal("6000"))
+        with_event = simulate(p, D, [], unresolved_evidence=result.unresolved)
+        self.assertEqual(with_event.ending_balance, Decimal("1000"))
 
     def test_moving_income_later_cannot_help_earlier_days(self):
         credit = flow("300", D + timedelta(days=10))

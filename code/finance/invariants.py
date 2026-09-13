@@ -52,17 +52,16 @@ def moving_income_later_cannot_help_earlier_days(profile: FinancialProfile,
                                                  credit: CashFlow,
                                                  later_date: date) -> bool:
     """Balance on any day <= credit date must not improve when the credit moves later."""
-    from copy import deepcopy
-    early = simulate(profile, request_date, [credit], include_trace=False)
+    early = simulate(profile, request_date, [credit], include_trace=True)
     moved = CashFlow(amount_home=credit.amount_home, effective_date=later_date,
                      category=credit.category, direction_value=credit.direction_value,
                      basis=credit.basis, source_event_ids=credit.source_event_ids,
                      essential=credit.essential, flexibility=credit.flexibility,
                      certainty=credit.certainty, event_type=credit.event_type)
-    late = simulate(profile, request_date, [moved], include_trace=False)
-    # minimum over the window up to the original credit date must not increase
+    late = simulate(profile, request_date, [moved], include_trace=True)
+
     def min_until(result: SimulationResult, upto: date) -> Decimal:
         balances = [e.ending_balance for e in result.timeline if e.date <= upto]
         return min(balances) if balances else result.starting_balance
-    return min_until(early, credit.effective_date) >= min_until(late, credit.effective_date) \
-        - Decimal("0")
+
+    return min_until(early, credit.effective_date) >= min_until(late, credit.effective_date)

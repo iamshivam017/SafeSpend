@@ -56,7 +56,6 @@ def _run_diagnose() -> int:
 
     Produces deterministic baseline traces (no output labels are read).
     """
-    from code.data_loader import validate_relationships
     from code.finance.lifecycle import resolve_lifecycle
     from code.finance.recurrence import detect_recurring_patterns
     from code.finance.simulator import simulate
@@ -75,17 +74,17 @@ def _run_diagnose() -> int:
     for sample in bundle.samples:
         request = sample.request
         profile = indexes.profiles_by_user_id[request.user_id]
-        user_events = indexes.events_by_user_id.get(request.user_id, [])
-        lifecycle = resolve_lifecycle(user_events, request.request_date)
-        patterns = detect_recurring_patterns(user_events)
         try:
+            user_events = indexes.events_by_user_id.get(request.user_id, [])
+            lifecycle = resolve_lifecycle(user_events, request.request_date)
+            patterns = detect_recurring_patterns(user_events)
             timeline = build_cash_timeline(profile, request.request_date, lifecycle,
                                            patterns, indexes)
+            sim = simulate(profile, request.request_date, timeline.flows,
+                           unresolved_evidence=lifecycle.unresolved, include_trace=False)
         except SafeSpendError as exc:
             print(f"{request.request_id:<12}{request.user_id:<10}ERROR: {exc}")
             continue
-        sim = simulate(profile, request.request_date, timeline.flows,
-                       unresolved_evidence=lifecycle.unresolved, include_trace=False)
         print(f"{request.request_id:<12}{request.user_id:<10}{sim.state.value:<11}"
               f"{sim.minimum_projected_balance:>16}{sim.minimum_balance_required:>14}"
               f"{len(timeline.flows):>7}{len(patterns):>9}{len(lifecycle.unresolved):>6}")

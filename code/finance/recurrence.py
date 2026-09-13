@@ -7,25 +7,30 @@ cadence; category names are never used as evidence (D18).
 Algorithm (parameters are explicit and testable):
 1. Group settled, cash-material, non-blank events by
    (user, category, direction, currency).
-2. Compute consecutive event-date gaps; bucket each gap:
-     weekly       6..8
-     biweekly    13..15
-     monthly     28..31
-     custom      any fixed gap g where the observation count is sufficient
-   Pick the dominant bucket (most observations). A series is periodic when
-   (a) at least `min_observations` events and (b) the dominant bucket covers
-   at least `min_bucket_fraction` of all gaps. Outlier one-off adjustments
+2. Compute consecutive event-date gaps; classify the series cadence:
+     monthly      majority of gaps in 28..31 (projected by day-of-month anchor)
+     fixed-gap    majority of gaps equal (±1) to one dominant gap value
+                  (covers the observed weekly 7d, 10d, 14d, 21d cadences)
+   Pick the dominant classification. A series is periodic when
+   (a) at least `min_observations` events and (b) the matching gaps cover at
+   least `min_bucket_fraction` of all gaps. Outlier one-off adjustments
    (e.g. a 5-day gap inside a monthly salary series) are tolerated by the
    majority rule.
 3. Representative amount (conservative, D18):
    debits  -> max of the last `recent_window` amounts  (over-reserve spending)
    credits -> median of the last `recent_window` amounts (under-count income;
               tolerates one-off small/large adjustments)
-4. Projection: from the last historical occurrence, step by the cadence
-   (monthly uses day-of-month clamping; fixed gaps use +g days) until the
-   horizon end. A projected occurrence is DROPPED when an actual cash event
-   with the same (category, direction) already lands within `actual_tolerance`
-   days of it — actual records outrank forecasts (official conflict rule 3).
+4. Staleness (C3 fix): a series only projects while its last historical
+   occurrence is recent — within `max_silent_cadences` cadences of
+   request_date. A series that went silent longer than that is no longer
+   treated as active.
+5. Projection: monthly cadences step by day-of-month from the ANCHOR day
+   (last occurrence's day; clamping never drifts the anchor, W3 fix). Fixed
+   gaps step by +g days. Only occurrences strictly AFTER request_date are
+   emitted (a same-day projected credit is never treated as available cash).
+   A projected occurrence is DROPPED when an actual cash event with the same
+   (category, direction) already lands within `actual_tolerance` days of it —
+   actual records outrank forecasts (official conflict rule 3).
 
 Insufficient evidence -> not recurring (never hallucinated).
 """
@@ -49,6 +54,7 @@ class RecurrenceParams:
     biweekly_band: tuple[int, int] = (13, 15)
     monthly_band: tuple[int, int] = (28, 31)
     actual_tolerance_days: int = 3
+    max_silent_cadences: int = 2   # series silent longer than this is inactive (C3)
 
 
 DEFAULT_PARAMS = RecurrenceParams()
@@ -68,22 +74,14 @@ class RecurringPattern:
     classification_reason: str
 
 
-def _bucket(gap: int, p: RecurrenceParams) -> str | None:
-    if p.weekly_band[0] <= gap <= p.weekly_band[1]:
-        return "weekly"
-    if p.biweekly_band[0] <= gap <= p.biweekly_band[1]:
-        return "biweekly"
-    if p.monthly_band[0] <= gap <= p.monthly_band[1]:
-        return "monthly"
-    return None
-
-
 def _conservative_amount(amounts: list[Decimal], direction: EventDirection,
                          window: int) -> Decimal:
     recent = amounts[-window:]
     if direction == EventDirection.DEBIT:
         return max(recent)   # conservative: reserve the worst recent spend
-    return Decimal(str(statistics.median([str(a) for a in recent])))
+    # numeric median of Decimals — exact (a string median would sort
+    # lexicographically and misstate mixed-magnitude income, C2)
+    return statistics.median(recent)
 
 
 def _dominant_flexibility(events: list[FinancialEvent]) -> str:
@@ -93,12 +91,16 @@ def _dominant_flexibility(events: list[FinancialEvent]) -> str:
     return max(counts.items(), key=lambda kv: (kv[1], kv[0]))[0]
 
 
-def _add_month_clamped(d: date) -> date:
-    """Same day-of-month next month, clamped to the month length."""
-    year, month = (d.year + 1, 1) if d.month == 12 else (d.year, d.month + 1)
-    day = min(d.day, [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
-                      else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][month - 1])
-    return date(year, month, day)
+def _month_add(anchor_day: int, d: date, steps: int) -> date:
+    """`steps` months after d, keeping the ANCHOR day-of-month (clamped per
+    month to the month length, never drifting: Jan-31 anchor -> Feb-28 ->
+    Mar-31, W3)."""
+    total = d.month - 1 + steps
+    year = d.year + total // 12
+    month = total % 12 + 1
+    month_lengths = [31, 29 if year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)
+                     else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    return date(year, month, min(anchor_day, month_lengths[month - 1]))
 
 
 def detect_recurring_patterns(events: list[FinancialEvent], *,
@@ -119,33 +121,35 @@ def detect_recurring_patterns(events: list[FinancialEvent], *,
         if len(es) < params.min_observations:
             continue
         gaps = [(b.event_date - a.event_date).days for a, b in zip(es, es[1:])]
-        buckets: dict[str, list[int]] = {}
-        for g in gaps:
-            b = _bucket(g, params)
-            if b is not None:
-                buckets.setdefault(b, []).append(g)
-        if not buckets:
-            continue
-        bucket_name, bucket_gaps = max(
-            buckets.items(), key=lambda kv: (len(kv[1]), -abs(statistics.median(kv[1]) - 30)))
-        if len(bucket_gaps) / len(gaps) < params.min_bucket_fraction:
-            continue
 
-        if bucket_name == "monthly":
-            cadence = int(statistics.median(bucket_gaps))
+        # monthly band first (calendar-month gaps drift across 28..31)
+        monthly_gaps = [g for g in gaps
+                        if params.monthly_band[0] <= g <= params.monthly_band[1]]
+        cadence = None
+        is_monthly = False
+        reason = None
+        if len(monthly_gaps) / len(gaps) >= params.min_bucket_fraction:
+            cadence = int(statistics.median(monthly_gaps))
             is_monthly = True
-            reason = f"monthly cadence ({len(bucket_gaps)}/{len(gaps)} gaps in 28-31)"
+            reason = f"monthly cadence ({len(monthly_gaps)}/{len(gaps)} gaps in 28-31)"
         else:
-            # weekly/biweekly or a fixed custom gap: require near-exact consistency
-            med = statistics.median(bucket_gaps)
-            consistent = [g for g in gaps if abs(g - med) <= 1]
-            if len(consistent) / len(gaps) < params.min_bucket_fraction:
-                continue
-            cadence = int(med)
-            is_monthly = False
-            label = {"weekly": "weekly", "biweekly": "biweekly"}.get(
-                bucket_name, f"fixed-{cadence}d")
-            reason = f"{label} cadence ({len(consistent)}/{len(gaps)} gaps ~= {cadence}d)"
+            # fixed-gap rule: dominant exact gap value with ±1 consistency
+            # (covers weekly 7d, biweekly 14d and the observed 10d/21d cadences)
+            gap_counts: dict[int, int] = {}
+            for g in gaps:
+                gap_counts[g] = gap_counts.get(g, 0) + 1
+            dominant = max(gap_counts.items(), key=lambda kv: (kv[1], -kv[0]))
+            g0, count = dominant
+            consistent = [g for g in gaps if abs(g - g0) <= 1]
+            if count >= 2 and len(consistent) / len(gaps) >= params.min_bucket_fraction:
+                cadence = int(statistics.median(consistent))
+                is_monthly = False
+                label = ("weekly" if params.weekly_band[0] <= cadence <= params.weekly_band[1]
+                         else "biweekly" if params.biweekly_band[0] <= cadence <= params.biweekly_band[1]
+                         else f"fixed-{cadence}d")
+                reason = f"{label} cadence ({len(consistent)}/{len(gaps)} gaps ~= {cadence}d)"
+        if cadence is None:
+            continue
 
         patterns.append(RecurringPattern(
             category=category, direction=direction, currency=currency,
@@ -167,8 +171,11 @@ def project_occurrences(patterns: list[RecurringPattern], request_date: date,
                         ) -> tuple[list[ResolvedCashEvent], list[str]]:
     """Project future occurrences of each pattern up to horizon_end.
 
-    Returns (projected_events, diagnostics). A projection is dropped when an
-    actual cash movement of the same category+direction already lands within
+    A pattern whose last historical occurrence is older than
+    `max_silent_cadences` cadences before request_date is inactive and never
+    projects (no phantom income/debits from dead series). Only occurrences
+    strictly after request_date are emitted. A projection is dropped when an
+    actual cash movement of the same category+direction lands within
     `actual_tolerance_days` of it (actual outranks forecast).
     """
     actual_keys: dict[tuple[str, str], list[date]] = {}
@@ -178,17 +185,40 @@ def project_occurrences(patterns: list[RecurringPattern], request_date: date,
     projected: list[ResolvedCashEvent] = []
     diagnostics: list[str] = []
     for pattern in patterns:
+        silence_limit = request_date - timedelta(
+            days=params.max_silent_cadences * pattern.cadence_days)
+        if pattern.last_occurrence < silence_limit:
+            diagnostics.append(
+                f"{pattern.category}/{pattern.direction.value} inactive: last occurrence "
+                f"{pattern.last_occurrence.isoformat()} is older than "
+                f"{params.max_silent_cadences} cadences before {request_date.isoformat()}")
+            continue
+
         occurrences: list[date] = []
-        next_date = pattern.last_occurrence
-        while True:
-            next_date = (_add_month_clamped(next_date) if pattern.is_monthly
-                         else next_date + timedelta(days=pattern.cadence_days))
-            if next_date > horizon_end:
-                break
-            occurrences.append(next_date)
-            if len(occurrences) > 400:  # safety valve; 90-day horizon can't hit this
-                break
+        if pattern.is_monthly:
+            anchor_day = pattern.last_occurrence.day
+            steps = 1
+            while True:
+                occ = _month_add(anchor_day, pattern.last_occurrence, steps)
+                if occ > horizon_end:
+                    break
+                occurrences.append(occ)
+                steps += 1
+                if steps > 400:  # safety valve; 90-day horizon can't hit this
+                    break
+        else:
+            occ = pattern.last_occurrence
+            while True:
+                occ = occ + timedelta(days=pattern.cadence_days)
+                if occ > horizon_end:
+                    break
+                occurrences.append(occ)
+                if len(occurrences) > 400:  # safety valve
+                    break
+
         for occ in occurrences:
+            if occ <= request_date:
+                continue  # a same-day projected credit is never available cash (C3)
             near_actual = any(abs((occ - d).days) <= params.actual_tolerance_days
                               for d in actual_keys.get(
                                   (pattern.category, pattern.direction.value), []))

@@ -11,12 +11,18 @@ Horizon: [request_date, request_date + 90] inclusive (docs/finance/timeline).
 
 Safety states (internal, NOT the HackerRank affordability_status):
 - SAFE       : floor never violated and no unresolved material evidence
-- UNSAFE     : floor violated at some point (temporary recovery does not repair it)
-- UNRESOLVED : an in-horizon cash-material debit has a blank amount awaiting
-               Phase 4 evidence resolution — no falsely precise claims
+- UNSAFE     : floor violated at some point (temporary recovery does not repair
+               it). UNSAFE outranks UNRESOLVED: unresolved blank debits can only
+               lower the balance further, so a proven violation is certain
+               information that must not be masked.
+- UNRESOLVED : no floor violation yet, but an in-horizon cash-material debit
+               has a blank amount awaiting Phase 4 evidence resolution — no
+               falsely precise claims
 
 Hypothetical payment schedules (Phase 3 input) are injected as debits on their
 dates; the simulator only answers "does this schedule preserve the floor?".
+Payments outside the [request_date, horizon_end] window raise DataError
+(Phase 3 must never discover a silently ignored payment).
 """
 from __future__ import annotations
 
@@ -25,6 +31,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 from enum import Enum
 
+from ..errors import DataError
 from ..schemas import FinancialProfile
 from .lifecycle import UnresolvedEvidence
 from .timeline import CashFlow, horizon_end
@@ -45,7 +52,7 @@ class Payment:
         return CashFlow(amount_home=-self.amount, effective_date=self.payment_date,
                         category="_hypothetical_payment", direction_value="debit",
                         basis="hypothetical_payment", source_event_ids=("_hypothetical",),
-                        essential=False, flexibility="fixed", certainty="actual",
+                        essential=False, flexibility="fixed", certainty="hypothetical",
                         event_type="hypothetical_payment")
 
 
@@ -73,8 +80,8 @@ class SimulationResult:
 
 
 def _apply_day(day_start: Decimal, flows: list[CashFlow], floor: Decimal,
-               day: date, trace: list[TimelineEntry]) -> tuple[Decimal, date | None, list[str]]:
-    """Apply one day's flows in the D6 order; return (end_balance, first_violation, notes)."""
+               day: date, trace: list[TimelineEntry]) -> tuple[Decimal, date | None]:
+    """Apply one day's flows in the D6 order; return (end_balance, first_violation)."""
     debits = sorted([f for f in flows if f.amount_home < 0],
                     key=lambda f: (f.amount_home, f.category))  # most negative first
     credits = sorted([f for f in flows if f.amount_home >= 0],
@@ -96,7 +103,7 @@ def _apply_day(day_start: Decimal, flows: list[CashFlow], floor: Decimal,
         entry.safe_after_step = False
     entry.ending_balance = balance
     trace.append(entry)
-    return balance, first_violation, []
+    return balance, first_violation
 
 
 def simulate(profile: FinancialProfile, request_date: date,
@@ -115,7 +122,13 @@ def simulate(profile: FinancialProfile, request_date: date,
     flows_by_day: dict[date, list[CashFlow]] = {}
     for f in cash_flows:
         flows_by_day.setdefault(f.effective_date, []).append(f)
+    end = horizon_end(request_date)
     for p in hypothetical_payments or []:
+        if not (request_date <= p.payment_date <= end):
+            raise DataError(
+                f"hypothetical payment dated {p.payment_date.isoformat()} outside the "
+                f"forecast window [{request_date.isoformat()}, {end.isoformat()}] "
+                f"(silently ignoring it would fake feasibility)", identifier="_payment")
         flows_by_day.setdefault(p.payment_date, []).append(p.as_cash_flow())
 
     unresolved_material = [u for u in (unresolved_evidence or [])
@@ -126,19 +139,20 @@ def simulate(profile: FinancialProfile, request_date: date,
     first_violation: date | None = None
     min_balance = balance
     day = request_date
-    end = horizon_end(request_date)
     while day <= end:
-        balance, violation, _ = _apply_day(balance, flows_by_day.get(day, []), floor,
-                                           day, trace if include_trace else [])
+        balance, violation = _apply_day(balance, flows_by_day.get(day, []), floor,
+                                        day, trace if include_trace else [])
         min_balance = min(min_balance, balance)
         if violation is not None and first_violation is None:
             first_violation = violation
         day += timedelta(days=1)
 
-    if unresolved_material:
-        state = SafetyState.UNRESOLVED
-    elif first_violation is not None:
+    # UNSAFE outranks UNRESOLVED: unresolved blank debits can only lower the
+    # balance further, so a proven floor violation is certain information (W2).
+    if first_violation is not None:
         state = SafetyState.UNSAFE
+    elif unresolved_material:
+        state = SafetyState.UNRESOLVED
     else:
         state = SafetyState.SAFE
 
