@@ -93,12 +93,16 @@ def build_cash_timeline(profile: FinancialProfile, request_date: date,
             essential=_essential(profile, c.category),
             flexibility=c.flexibility, certainty="actual", event_type=c.event_type))
 
-    projected, diagnostics = project_occurrences(patterns, request_date, end,
-                                                 lifecycle.cash_events)
+    user_events = indexes.events_by_user_id.get(profile.user_id, [])
+    projected, diagnostics = project_occurrences(
+        patterns, request_date, end, lifecycle.cash_events,
+        source_events=user_events,
+        protected_categories=set(profile.expense_categories_to_protect))
     from .recurrence import essential_provisions
+    projected_fixed_keys = {(c.category, "debit") for c in projected}
     provisions = essential_provisions(
-        indexes.events_by_user_id.get(profile.user_id, []),
-        set(profile.expense_categories_to_protect), request_date, patterns)
+        user_events, set(profile.expense_categories_to_protect),
+        request_date, patterns, projected_fixed_keys=projected_fixed_keys)
     for c in provisions:
         amount_home = converter.convert(c.amount, c.currency, profile.home_currency,
                                         on_date=c.effective_date,

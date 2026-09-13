@@ -12,9 +12,12 @@ from _finance_fixture import D, ev, profile
 
 from code.errors import DataError
 from code.schemas import EventStatus
+from code.schemas import EventStatus
 from code.finance.lifecycle import resolve_lifecycle
-from code.finance.recurrence import (detect_recurring_patterns, essential_provisions,
-                                     project_occurrences, RecurrenceParams)
+from code.finance.recurrence import (classify_pattern, detect_recurring_patterns,
+                                     essential_provisions, project_occurrences,
+                                     RecurrenceParams)
+from code.finance.timeline import build_cash_timeline
 from code.finance.simulator import Payment, SafetyState, simulate
 from code.finance.timeline import CashFlow
 
@@ -90,39 +93,56 @@ class DominantAnchorTests(unittest.TestCase):
                          [date(2019, 9, 15), date(2019, 10, 15), date(2019, 11, 15)])
 
 
-class MonthlyOnlyProjectionTests(unittest.TestCase):
-    """Phase 2.1 (requests 02/03/04/08/12/17/22 evidence): sub-monthly purchase
-    series are history, not forecast commitments."""
+class ClassificationProjectionTests(unittest.TestCase):
+    """Phase 2.2: sub-monthly patterns are CLASSIFIED, not blanket-suppressed.
+    Variable sub-monthly purchases are not projected (requests 02/03/04/08/12/
+    17/22 evidence); commitment-like sub-monthly series (stable amounts or
+    subscription billing) ARE projected (directive 6.7)."""
 
-    def test_fixed_gap_pattern_detected_but_not_projected(self):
+    def test_variable_submonthly_detected_not_projected(self):
         from code.schemas import EventDirection
         es = [ev(f"g{i}", category="groceries", direction=EventDirection.DEBIT,
-                 amount="50", event_date=D - timedelta(days=10 * (5 - i)),
+                 amount=str(500 + i * 40),  # varying amounts -> variable
+                 event_date=D - timedelta(days=10 * (5 - i)),
                  settlement=D - timedelta(days=10 * (5 - i))) for i in range(5)]
         patterns = detect_recurring_patterns(es)
         self.assertEqual(len(patterns), 1)  # still detected (traceability)
-        projected, diags = project_occurrences(patterns, D, D + timedelta(days=90), [])
+        projected, diags = project_occurrences(patterns, D, D + timedelta(days=90), [],
+                                               source_events=es)
         self.assertEqual(projected, [])
-        self.assertTrue(any("monthly-commitments-only" in d for d in diags))
+        self.assertTrue(any("classified" in d for d in diags))
 
-    def test_monthly_pattern_still_projects(self):
+    def test_stable_submonthly_commitment_projected(self):
+        # directive 6.7: weekly fixed obligation must not be blanket-forbidden
+        from code.schemas import EventDirection
+        es = [ev(f"g{i}", category="groceries", direction=EventDirection.DEBIT,
+                 amount="50",  # identical amounts -> commitment-like
+                 event_date=D - timedelta(days=7 * (5 - i)),
+                 settlement=D - timedelta(days=7 * (5 - i))) for i in range(5)]
+        patterns = detect_recurring_patterns(es)
+        projected, _ = project_occurrences(patterns, D, D + timedelta(days=90), [],
+                                           source_events=es)
+        self.assertTrue(projected)  # weekly fixed commitment projects
+
+    def test_subscription_billing_submonthly_projected(self):
+        from code.schemas import EventDirection, EventType
+        es = [ev(f"s{i}", type=EventType.SUBSCRIPTION, category="cloud_storage",
+                 direction=EventDirection.DEBIT, amount=str(100 + i),  # mildly varying
+                 event_date=D - timedelta(days=14 * (5 - i)),
+                 settlement=D - timedelta(days=14 * (5 - i))) for i in range(5)]
+        patterns = detect_recurring_patterns(es)
+        projected, _ = project_occurrences(patterns, D, D + timedelta(days=90), [],
+                                           source_events=es)
+        self.assertTrue(projected)  # subscription billing = obligation
+
+    def test_monthly_pattern_always_projects(self):
         from code.schemas import EventDirection
         es = [ev(f"r{i}", category="rent", direction=EventDirection.DEBIT, amount="800",
                  event_date=D - timedelta(days=30 * (5 - i)),
                  settlement=D - timedelta(days=30 * (5 - i))) for i in range(5)]
         patterns = detect_recurring_patterns(es)
-        projected, _ = project_occurrences(patterns, D, D + timedelta(days=90), [])
-        self.assertTrue(projected)
-
-    def test_opt_in_non_monthly_projection(self):
-        from code.schemas import EventDirection
-        es = [ev(f"g{i}", category="groceries", direction=EventDirection.DEBIT,
-                 amount="50", event_date=D - timedelta(days=10 * (5 - i)),
-                 settlement=D - timedelta(days=10 * (5 - i))) for i in range(5)]
-        patterns = detect_recurring_patterns(es)
-        params = RecurrenceParams(project_non_monthly=True)
         projected, _ = project_occurrences(patterns, D, D + timedelta(days=90), [],
-                                           params=params)
+                                           source_events=es)
         self.assertTrue(projected)
 
 
@@ -168,10 +188,9 @@ class EssentialProvisionTests(unittest.TestCase):
         patterns = detect_recurring_patterns(es)
         self.assertEqual(patterns, [])  # irregular
         provisions = essential_provisions(es, {"healthcare"}, D, patterns)
-        self.assertEqual(len(provisions), 2)  # +30d, +60d
-        self.assertEqual(provisions[0].amount, Decimal("120"))  # trailing-30d total
+        self.assertEqual(len(provisions), 1)  # one aggregate provision
+        self.assertEqual(provisions[0].amount, Decimal("120"))  # median of 3 window totals
         self.assertEqual(provisions[0].effective_date, D + timedelta(days=30))
-        self.assertEqual(provisions[1].effective_date, D + timedelta(days=60))
 
     def test_not_fired_for_non_protected_or_patterned(self):
         from code.schemas import EventDirection
@@ -189,24 +208,28 @@ class EssentialProvisionTests(unittest.TestCase):
                         settlement=D - timedelta(days=11 * n)) for n in range(6)]
         self.assertEqual(essential_provisions(irregular, {"healthcare"}, D, []), [])
 
-    def test_realdata_provisions_never_fire(self):
-        # empirical dataset fact: every essential series is periodic after
-        # clustering, so the safety net must never fire on official data
-        from _bootstrap import ROOT  # noqa: F401
+    def test_realdata_provisions_respect_fixed_coverage(self):
+        # production-path invariant: provisions never duplicate a fixed
+        # projection for the same protected category
         from code.data_loader import load_all
         from code.indexes import Indexes
         bundle = load_all()
         indexes = Indexes.build(bundle)
-        fired = 0
         for s in bundle.samples:
             r = s.request
             ue = indexes.events_by_user_id.get(r.user_id, [])
             p = indexes.profiles_by_user_id[r.user_id]
             pats = detect_recurring_patterns(ue)
-            provisions = essential_provisions(
-                ue, set(p.expense_categories_to_protect), r.request_date, pats)
-            fired += len(provisions)
-        self.assertEqual(fired, 0)
+            lc = resolve_lifecycle(ue, r.request_date)
+            tl = build_cash_timeline(p, r.request_date, lc, pats, indexes)
+            # production-path invariant: a provision never duplicates a fixed
+            # projection for the same protected category
+            fixed_keys = {(f.category, f.direction_value) for f in tl.flows
+                          if f.basis == "recurring_projection"}
+            for f in tl.flows:
+                if f.basis == "essential_provision":
+                    self.assertTrue(f.essential)
+                    self.assertNotIn((f.category, "debit"), fixed_keys)
 
 
 class CancellationAmendmentMatrixTests(unittest.TestCase):

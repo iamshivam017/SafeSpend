@@ -94,7 +94,11 @@ Tracked in execution/DECISIONS.md. Phase 2 implemented E1 (D10/D18) and E4 (D11:
 rates only, empirically sufficient), and added the balance-snapshot interpretation
 D19. Phase 2.1 revised E1 (day-of-month clustering; monthly-commitments-only
 projection scope) and E5 (EOD floor checking) on sample evidence — D6/D10 rev. 2,
-D21 essential-provision safety net, D22 audit+horizon. E2/E3 remain OPEN for Phase 3.)
+D21 essential-provision safety net, D22 audit+horizon. Phase 2.2 split recurrence
+into FIXED COMMITMENTS vs VARIABLE ESSENTIAL spending (D10 rev. 3, D21 rev. 2,
+D23): protected variable streams receive exactly one forward treatment (aggregate
+reserve), with UNACCOUNTED=0 enforced by the coverage audit. E2/E3 remain OPEN
+for Phase 3.)
 
 - E1. **Recurrence detection**: an event series repeats when the same user+category+direction shows regular periodic settlement history (e.g. monthly salary on the 15th); one-off spikes explicitly flagged by evidence (e.g. message_02 "one-time adjustment") are excluded from the projection. Recurring amounts use a conservative value from history (e.g. recent max/last), not an optimistic average.
 - E2. **`max_installment_months` semantics**: an option is allowed when its total span (`first_payment_date + (number_of_payments-1) × payment_frequency_days` minus request context) fits within `max_installment_months` months (approx. 30-day months). To be pinned by regression: user_02 (max 7) accepted a 3×30d option and the 18×31d option would be excluded under any reasonable reading.

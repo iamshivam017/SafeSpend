@@ -55,11 +55,14 @@ class RecurrenceParams:
     monthly_band: tuple[int, int] = (28, 31)
     actual_tolerance_days: int = 3
     max_silent_cadences: int = 2   # series silent longer than this is inactive (C3)
-    # Phase 2.1 (sample evidence: requests 02/03/04/08/12/17/22): only monthly
-    # commitments are projected. Sub-monthly purchase series (groceries 7/10d,
-    # dining 14/21d, transport 7/21d) are HISTORY, not forecast commitments —
-    # projecting them over-reserves and contradicts the official solved plans.
-    project_non_monthly: bool = False
+    # Phase 2.2: sub-monthly patterns are CLASSIFIED, not blanket-suppressed.
+    # A non-monthly series is a fixed commitment when its amounts are stable
+    # (relative spread <= stability_tolerance over the recent window) or its
+    # dominant event_type is `subscription` (a billing obligation); otherwise
+    # it is variable spending (essential if the category is protected, else
+    # discretionary). Sample evidence (requests 02/03/04/08/12/17/22): variable
+    # sub-monthly purchases must not be projected as exact commitments.
+    stability_tolerance: str = "0.15"
 
 
 DEFAULT_PARAMS = RecurrenceParams()
@@ -168,6 +171,51 @@ def _detect_series(es: list[FinancialEvent], params: RecurrenceParams
         classification_reason=reason)
 
 
+PatternClass = str  # "fixed_commitment" | "variable_essential" | "variable_discretionary"
+
+
+def _amount_stable(amounts, tolerance):
+    """True when the recent amounts are near-constant (commitment-like)."""
+    recent = amounts[-5:]
+    if len(recent) < 2:
+        return True
+    median = statistics.median(recent)
+    if median == 0:
+        return False
+    return (max(recent) - min(recent)) <= tolerance * median
+
+
+def _dominant_type(events):
+    counts = {}
+    for e in events:
+        counts[e.event_type.value] = counts.get(e.event_type.value, 0) + 1
+    return max(counts.items(), key=lambda kv: (kv[1], kv[0]))[0]
+
+
+def classify_pattern(pattern, source_events, protected_categories,
+                     params=DEFAULT_PARAMS):
+    """Classify a detected pattern into exactly one forward treatment.
+
+    - monthly cadence -> fixed_commitment (officially validated across the
+      solved plans: monthly rent/utilities/subscriptions/debt/salary streams
+      project; no solved sample contradicts monthly projection)
+    - non-monthly -> fixed_commitment only when commitment-like (stable amounts
+      or subscription billing); otherwise VARIABLE spending:
+      variable_essential when the category is protected, else
+      variable_discretionary. Category NAME alone is never the classifier —
+      protection comes from the user's profile, stability from history.
+    """
+    if pattern.is_monthly:
+        return "fixed_commitment"
+    tolerance = Decimal(params.stability_tolerance)
+    amounts = [e.amount for e in source_events if e.amount is not None]
+    if _dominant_type(source_events) == "subscription" or _amount_stable(amounts, tolerance):
+        return "fixed_commitment"
+    if pattern.category in protected_categories:
+        return "variable_essential"
+    return "variable_discretionary"
+
+
 def _dom_distance(a: int, b: int) -> int:
     """Circular day-of-month distance on 1..31 (so 30/31 sit near 1/2)."""
     d = abs(a - b)
@@ -229,31 +277,36 @@ def detect_recurring_patterns(events: list[FinancialEvent], *,
     return patterns
 
 
-def project_occurrences(patterns: list[RecurringPattern], request_date: date,
-                        horizon_end: date,
-                        actual_cash: list[ResolvedCashEvent],
-                        params: RecurrenceParams = DEFAULT_PARAMS
-                        ) -> tuple[list[ResolvedCashEvent], list[str]]:
-    """Project future occurrences of each pattern up to horizon_end.
+def project_occurrences(patterns, request_date, horizon_end, actual_cash,
+                        source_events=None, protected_categories=None,
+                        params=DEFAULT_PARAMS):
+    """Project future occurrences of FIXED-COMMITMENT patterns to horizon_end.
 
-    A pattern whose last historical occurrence is older than
-    `max_silent_cadences` cadences before request_date is inactive and never
-    projects (no phantom income/debits from dead series). Only occurrences
-    strictly after request_date are emitted. A projection is dropped when an
-    actual cash movement of the same category+direction lands within
-    `actual_tolerance_days` of it (actual outranks forecast).
+    Patterns are classified (D10 rev. 3): monthly patterns and commitment-like
+    non-monthly patterns (stable amounts / subscription billing) project as
+    dated events; variable patterns do NOT project as exact events — protected
+    variable categories receive the aggregate essential provision instead (see
+    essential_provisions). A pattern whose last historical occurrence is older
+    than `max_silent_cadences` cadences before request_date is inactive. Only
+    occurrences strictly after request_date are emitted. A projection is
+    dropped when an actual cash movement of the same category+direction lands
+    within `actual_tolerance_days` of it (actual outranks forecast).
     """
-    actual_keys: dict[tuple[str, str], list[date]] = {}
+    actual_keys = {}
     for c in actual_cash:
         actual_keys.setdefault((c.category, c.direction.value), []).append(c.effective_date)
 
-    projected: list[ResolvedCashEvent] = []
-    diagnostics: list[str] = []
+    protected = protected_categories or set()
+    projected = []
+    diagnostics = []
     for pattern in patterns:
-        if not params.project_non_monthly and not pattern.is_monthly:
+        source = [e for e in (source_events or [])
+                  if e.event_id in pattern.source_event_ids]
+        pclass = classify_pattern(pattern, source, protected, params)
+        if pclass != "fixed_commitment":
             diagnostics.append(
-                f"{pattern.category}/{pattern.direction.value} fixed-gap series detected "
-                f"but not projected (monthly-commitments-only policy, Phase 2.1)")
+                f"{pattern.category}/{pattern.direction.value} classified "
+                f"{pclass}: not projected as exact events")
             continue
         silence_limit = request_date - timedelta(
             days=params.max_silent_cadences * pattern.cadence_days)
@@ -264,7 +317,7 @@ def project_occurrences(patterns: list[RecurringPattern], request_date: date,
                 f"{params.max_silent_cadences} cadences before {request_date.isoformat()}")
             continue
 
-        occurrences: list[date] = []
+        occurrences = []
         if pattern.is_monthly:
             anchor_day = pattern.last_occurrence.day
             steps = 1
@@ -274,7 +327,7 @@ def project_occurrences(patterns: list[RecurringPattern], request_date: date,
                     break
                 occurrences.append(occ)
                 steps += 1
-                if steps > 400:  # safety valve; 90-day horizon can't hit this
+                if steps > 400:  # safety valve; 90-day horizon cannot hit this
                     break
         else:
             occ = pattern.last_occurrence
@@ -319,56 +372,61 @@ class ProvisionParams:
 DEFAULT_PROVISION_PARAMS = ProvisionParams()
 
 
-def essential_provisions(events: list[FinancialEvent], protected_categories: set[str],
-                         request_date: date, patterns: list[RecurringPattern],
-                         params: RecurrenceParams = DEFAULT_PARAMS,
-                         provision_params: ProvisionParams = DEFAULT_PROVISION_PARAMS
-                         ) -> list[ResolvedCashEvent]:
-    """Conservative provision for irregular essential spending (official AGENTS.md 6.3:
-    "Forecast essential variable spending conservatively").
+def essential_provisions(events, protected_categories, request_date, patterns,
+                         projected_fixed_keys=None,
+                         params=DEFAULT_PARAMS,
+                         provision_params=DEFAULT_PROVISION_PARAMS):
+    """Conservative aggregate provision for VARIABLE essential spending
+    (official AGENTS.md 6.3: "Forecast essential variable spending
+    conservatively").
 
-    Fires ONLY when a protected (essential) category shows sustained debit
-    history — >= min_events_90d settled events in the trailing 90 days, spend
-    present in each of the last 3 windows of `window_days` days — yet NO
-    recurring pattern was detected. Empirical dataset fact: after day-of-month
-    clustering this never fires on the official data (every essential series is
-    periodic), so it is a pure safety net for unseen eval shapes.
+    Gate (D21 rev. 2): a protected category is provisioned when it has
+    sustained debit history (>= min_events_90d settled events in the trailing
+    90 days, spend in each of the last 3 windows) and is NOT already projected
+    as a fixed commitment. Detection alone never suppresses the provision —
+    only an actual fixed projection does (Phase 2.2: a detected-but-unprojected
+    sub-monthly pattern must not make essential spending vanish).
 
-    Provision = the trailing-window total, projected at request_date + window
-    and + 2*window (the trailing window itself is already inside the starting
-    balance — projecting only future windows avoids double-counting).
+    Amount = MEDIAN of the last 3 window totals (robust upper-leaning central
+    estimate; not the single largest window, not one historical event).
+    Placement = ONE occurrence at request_date + window_days (the trailing
+    window itself is already inside the starting balance). Classified as an
+    ENGINEERING DECISION (D21); empirically calibrated against the solved
+    samples (request_01's official budget admits exactly one aggregate
+    provision).
     """
-    pattern_keys = {(p.category, p.direction.value) for p in patterns}
-    by_category: dict[str, list[FinancialEvent]] = {}
+    projected_keys = projected_fixed_keys or set()
+    by_category = {}
     for e in events:
         if (e.direction == EventDirection.DEBIT and e.status == EventStatus.SETTLED
                 and e.amount is not None and e.category in protected_categories
                 and request_date - timedelta(days=90) <= e.event_date <= request_date):
             by_category.setdefault(e.category, []).append(e)
 
-    provisions: list[ResolvedCashEvent] = []
+    provisions = []
     for category, evs in sorted(by_category.items()):
-        if (category, "debit") in pattern_keys or len(evs) < provision_params.min_events_90d:
+        if (category, "debit") in projected_keys:
+            continue  # fixed projection already covers it (no double count)
+        if len(evs) < provision_params.min_events_90d:
             continue
-        active_windows = 0
-        trailing_total = Decimal("0")
+        window_totals = []
         for w in range(3):
             window_end = request_date - timedelta(days=provision_params.window_days * w)
             window_start = window_end - timedelta(days=provision_params.window_days)
             in_window = [e for e in evs if window_start < e.event_date <= window_end]
-            if in_window:
-                active_windows += 1
-                if w == 0:
-                    trailing_total = sum((e.amount for e in in_window), Decimal("0"))
-        if active_windows < provision_params.min_windows_active or trailing_total <= 0:
+            window_totals.append(
+                sum((e.amount for e in in_window), Decimal("0")) if in_window else None)
+        if any(total is None for total in window_totals):
+            continue  # spend must be present in all three windows (sustained)
+        amount = statistics.median(window_totals)
+        if amount <= 0:
             continue
         sources = tuple(sorted(e.event_id for e in evs))
-        for k in (1, 2):
-            provisions.append(ResolvedCashEvent(
-                amount=trailing_total, currency=evs[0].currency,
-                direction=EventDirection.DEBIT,
-                effective_date=request_date + timedelta(days=provision_params.window_days * k),
-                category=category, event_type="essential_provision",
-                flexibility="fixed", source_event_ids=sources,
-                basis="essential_provision"))
+        provisions.append(ResolvedCashEvent(
+            amount=amount, currency=evs[0].currency,
+            direction=EventDirection.DEBIT,
+            effective_date=request_date + timedelta(days=provision_params.window_days),
+            category=category, event_type="essential_provision",
+            flexibility="fixed", source_event_ids=sources,
+            basis="essential_provision"))
     return provisions

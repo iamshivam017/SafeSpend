@@ -46,11 +46,24 @@ class AuditRow:
     first_violation: str
     reason: str
     verdict: str
+    protected_categories: int = 0
+    fixed_essentials_projected: int = 0
+    variable_essential_reserves: int = 0
+    uncovered_protected: int = 0
 
     def line(self) -> str:
         return (f"{self.request_id:<12}{self.official_status:<22}{self.official_method:<18}"
                 f"{self.official_plan:<40}{self.simulator_state:<11}"
                 f"{self.first_violation:<12}{self.verdict:<14}{self.reason}")
+
+
+def _coverage_summary(coverage: dict[str, str]) -> tuple[int, int, int, list[str]]:
+    """Essential coverage diagnostics from a classify_coverage result."""
+    protected = len(coverage)
+    fixed = sum(1 for v in coverage.values() if v == "FIXED_RECURRING")
+    reserves = sum(1 for v in coverage.values() if v == "VARIABLE_ESSENTIAL_RESERVE")
+    uncovered = sorted(c for c, v in coverage.items() if v == "UNACCOUNTED")
+    return protected, fixed, reserves, uncovered
 
 
 def _audit_sample(sample: SampleRequest, indexes: Indexes) -> AuditRow:
@@ -94,6 +107,15 @@ def _audit_sample(sample: SampleRequest, indexes: Indexes) -> AuditRow:
         base.simulator_state, base.verdict = "ERROR", "DEFERRED"
         base.reason = f"timeline build failed: {exc}"
         return base
+
+    from .essential_coverage_audit import classify_coverage
+    coverage = classify_coverage(bundle=None, indexes=indexes,
+                                 user_id=request.user_id,
+                                 request_date=request.request_date)
+    (base.protected_categories, base.fixed_essentials_projected,
+     base.variable_essential_reserves, uncovered) = _coverage_summary(coverage)
+    if uncovered:
+        base.reason += f"; UNACCOUNTED protected: {uncovered}"
 
     payments = [Payment(entry.payment_date, entry.amount) for entry in plan]
     sim = simulate(profile, request.request_date, timeline.flows,

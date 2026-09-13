@@ -102,10 +102,10 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: sample_requests.csv rows 11/21.
 - Revisit condition: Phase 5 regression outcome.
 
-## D10 — Recurrence policy — REVISED IN PHASE 2.1 on sample evidence
-- Date: 2026-09-13 (revision 2)
+## D10 — Recurrence policy — REVISED IN PHASE 2.1/2.2 on sample evidence
+- Date: 2026-09-13 (revision 3)
 - Decision (detection): unchanged gap-bucket cadence detection (monthly 28-31d; fixed gaps +/-1; >=3 observations; >=60% majority; category names never evidence), PLUS day-of-month clustering: when a whole (user, category, direction, currency) series is not periodic, it is split into day-of-month clusters (tolerance 2, circular) and each cluster is re-tested — this detects interleaved twice-monthly salaries (users 09/13 evidence: paydays on the 7th/20th and 15th/20th) that naive gap detection misses. Monthly patterns anchor to the DOMINANT day-of-month, so a one-off adjustment (user_03's 08-20 spike) cannot hijack the projection anchor.
-- Decision (projection scope): ONLY monthly-cadence patterns are projected (`project_non_monthly=False`). Sub-monthly purchase series (groceries 7/10d, dining 14/21d, transport 7/21d) are detected and recorded for traceability but NOT forecast — sample evidence: requests 02/03/04/08/12/17/22 official plans become safe only without sub-monthly projections; they are repeated purchases, not commitments. Conservative amounts unchanged (debits MAX last-3, credits MEDIAN last-3); staleness bound unchanged; +/-3d actual-overlap drop unchanged.
+- Decision (projection scope, rev. 3 in Phase 2.2): patterns are CLASSIFIED, not blanket-suppressed by cadence. Monthly cadence -> fixed_commitment. Non-monthly -> fixed_commitment only when commitment-like (recent-5 amount spread <= 15% of median, or dominant event_type = subscription billing); otherwise variable spending (variable_essential if the category is protected, else variable_discretionary). Only fixed_commitment patterns project as dated events. Evidence: requests 02/03/04/08/12/17/22 official plans require variable sub-monthly purchases NOT to project as exact commitments, while directive 6.7 forbids blanket forbidding of genuine weekly/biweekly obligations. Conservative amounts unchanged (debits MAX last-3, credits MEDIAN last-3); staleness bound unchanged; +/-3d actual-overlap drop unchanged.
 - Status: DECIDED (rev. 2); verified by the sample-plan safety audit: 0 contradictions across all officially-evaluable solved plans (was 10).
 - Alternatives: keep sub-monthly projections (rejected — contradicts 7 official plans); project sub-monthly at means (still contradicts 5); category-based recurrence (forbidden).
 - Why: the official solved plans are the strongest public regression oracle; repeated purchase gaps alone are not proof of a commitment.
@@ -125,16 +125,27 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: AGENTS.md 6.3; user Phase 2 directive section 11; dataset amount analysis.
 - Revisit condition: Phase 5 calibration evidence.
 
-## D21 — Essential variable spending provision (safety net)
-- Date: 2026-09-13 (Phase 2.1)
-- Decision: for a PROTECTED (essential) category with >=6 settled debits in the trailing 90 days, spend present in each of the last three 30-day windows, and NO detected recurring pattern, project a monthly provision equal to the trailing-30-day total at request_date+30 and +60 (the trailing window itself is already inside the starting balance — projecting only future windows avoids double-counting).
+## D21 — Essential variable spending provision — REVISED IN PHASE 2.2
+- Date: 2026-09-13 (revision 2)
+- Decision (rev. 2): gate condition is 'NOT already PROJECTED as a fixed commitment' — merely DETECTING a (sub-monthly) pattern no longer suppresses the provision (Phase 2.1 gap: detection + non-projection + gate-on-detection made essential spending vanish). Amount = MEDIAN of the last three 30-day window totals (robust central estimate; not one historical event, not the max window), placed ONCE at request_date+30. Empirically calibrated: request_01's official budget (X <= 15,225.10 ZAR) admits exactly one aggregate groceries provision (3,226.39); two occurrences or max-window sizing would contradict the official answer.
 - Status: DECIDED (implemented in code/finance/recurrence.py::essential_provisions)
-- Context: official "Forecast essential variable spending conservatively" (AGENTS.md 6.3). Empirical dataset fact: after day-of-month clustering, EVERY essential category with sustained spend on all 275 users has a detected pattern — the provision never fires on official data (asserted by test). It is a deterministic safety net for unseen evaluation shapes, not a sample-calibrated rule.
+- Context: official "Forecast essential variable spending conservatively" (AGENTS.md 6.3). Coverage audit across all 275 users (D23): 611 protected categories FIXED_RECURRING, 273 VARIABLE_ESSENTIAL_RESERVE, 2 UNRESOLVED (blank-amount evidence, Phase 4), 0 NO_FUTURE_EVIDENCE, 0 UNACCOUNTED. The provision actively covers variable-essential streams (e.g. user_01 groceries 3,226.39 ZAR; user_13 groceries 396.09 + transport 195.55 EUR).
 - Alternatives considered: 75th-percentile robust estimate (more aggressive, no evidence); weekly trailing average (same coverage, more occurrences); omitting the policy entirely (rejected — leaves the official rule uncovered for irregular essentials).
 - Why: conservative, evidence-gated, double-count-safe, provenance-preserving (source event ids retained), independently tested.
 - Trade-offs: none on current data (never fires); if future data triggers it, Phase 5 calibration revisits the gate.
 - Evidence/source: AGENTS.md 6.3; user Phase 2.1 directive section 5; dataset census (0 essential-series gaps).
 - Revisit condition: Phase 5/6 evidence that the hidden ground truth provisions irregular essentials differently.
+
+## D23 — Two-concept recurrence architecture (Phase 2.2)
+- Date: 2026-09-13
+- Decision: the engine explicitly separates (A) FIXED / COMMITMENT-LIKE recurrence — projected as dated recurring events when history supports it (monthly cadence, or sub-monthly with stable amounts / subscription billing) — from (B) VARIABLE ESSENTIAL SPENDING — protected-category streams forecast as ONE aggregate conservative reserve (median of the last three 30-day totals), never as exact repeated purchases and never omitted. Every protected category with sustained history receives EXACTLY ONE treatment (fixed projection or reserve, never both, never neither); the coverage audit enforces UNACCOUNTED = 0 across all users. Repeated historical transactions and fixed commitments are distinct concepts; public-sample calibration must not erase protected spending.
+- Status: DECIDED
+- Context: Phase 2.1's monthly-only projection plus a detection-gated provision made protected variable spending vanish (the exact gap the external audit flagged).
+- Alternatives: blanket project_non_monthly flag (rejected — disposable-weekly assumption contradicts directive 6.7); per-purchase projection of variable streams (rejected — contradicts 7 official plans); max-window or two-occurrence provisioning (rejected — contradicts request_01's official budget).
+- Why: honors both official sentences — commitments respect supplied schedules, essentials are forecast conservatively — while the solved samples arbitrate the borderline.
+- Trade-offs: the 15% stability tolerance and single-provision placement are engineering parameters; Phase 5 calibrates.
+- Evidence/source: user_01/user_13 traces; audit + coverage outputs; user Phase 2.2 directive.
+- Revisit condition: Phase 5 calibration evidence.
 
 ## D22 — Sample-plan safety audit + horizon classification
 - Date: 2026-09-13 (Phase 2.1)
