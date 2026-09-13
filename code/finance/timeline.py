@@ -106,8 +106,8 @@ def build_cash_timeline(profile: FinancialProfile, request_date: date,
     protected = set(profile.expense_categories_to_protect)
     adjustable = (set(profile.expense_categories_user_is_willing_to_stop)
                   | set(profile.expense_categories_user_is_willing_to_reduce))
-    from ..finance.recurrence import ProvisionParams
-    pp = ProvisionParams()
+    from ..finance.recurrence import DEFAULT_PROVISION_PARAMS
+    pp = DEFAULT_PROVISION_PARAMS  # read module global at call time (harness-patchable)
     if pp.scope == "adjustable_variable_only":
         cat_filter = adjustable - protected
     elif pp.scope == "all":
