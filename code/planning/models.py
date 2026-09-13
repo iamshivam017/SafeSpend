@@ -38,8 +38,8 @@ class ChangeAction:
     event_id: str               # representative source event id of the series
     new_amount: Decimal | None  # reduce_to target (>= minimum_allowed_amount)
     category: str
-    pattern_key: tuple          # (category, direction) identifying projected flows
-    monthly_gain: Decimal       # per-occurrence reduction (0 for stop of monthly)
+    series_ids: frozenset       # source event ids identifying the EXACT series
+    monthly_gain: Decimal       # per-occurrence reduction this action achieves
 
 
 @dataclass(frozen=True)

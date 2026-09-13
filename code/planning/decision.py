@@ -37,31 +37,32 @@ def plan_request(profile: FinancialProfile, request: Request,
                  baseline_flows: list[CashFlow], options: list,
                  baseline: BaselineMetrics,
                  eligible_actions: list[ChangeAction],
-                 max_installment_months: int | None) -> Decision:
+                 max_installment_months: int | None,
+                 unresolved: list | None = None) -> Decision:
     all_candidates: list[PaymentCandidate] = []
-    change_sets: list[tuple[ChangeAction, ...]] = [()]
-    # lazy bounded search: singles -> pairs -> triples, only while no safe
-    # rescued candidate exists (baseline no-change candidates always evaluated)
+    evaluated: set[tuple] = set()
+    # bounded search: singles -> pairs -> triples; every change-set is
+    # simulated exactly once (W3 review fix: no duplicated work, no premature
+    # break that could suppress a better deeper rescue)
     for level in (1, 2, 3):
         level_sets = bounded_change_sets(eligible_actions, level)
-        change_sets.extend(s for s in level_sets if s not in change_sets)
-        all_candidates.extend(full_payment_candidates(profile, request, baseline_flows, change_sets))
+        new_sets = [s for s in level_sets
+                    if tuple(sorted((c.action, c.event_id, str(c.new_amount))
+                                    for c in s)) not in evaluated]
+        all_candidates.extend(full_payment_candidates(
+            profile, request, baseline_flows, new_sets, unresolved=unresolved))
         all_candidates.extend(partial_payment_candidate(
             profile, request, baseline_flows, baseline.amount_safe_to_pay,
-            baseline.earliest_date_for_full_payment, change_sets))
+            baseline.earliest_date_for_full_payment, new_sets, unresolved=unresolved))
         all_candidates.extend(installment_candidates(
-            profile, request, baseline_flows, options, change_sets,
-            max_installment_months))
-        if any(c.rejection_reason is None and c.sim_state is SafetyState.SAFE
-               and c.completes_by_deadline for c in all_candidates):
-            break
+            profile, request, baseline_flows, options, new_sets,
+            max_installment_months, unresolved=unresolved))
+        for s in new_sets:
+            evaluated.add(tuple(sorted((c.action, c.event_id, str(c.new_amount))
+                                       for c in s)))
     all_candidates.extend(wait_candidate(profile, request, baseline_flows,
-                                         baseline.earliest_date_for_full_payment))
-
-    best = best_candidate_for_method(all_candidates, Method.FULL_PAYMENT)
-    best_partial = best_candidate_for_method(all_candidates, Method.PARTIAL_PAYMENT)
-    best_installments = best_candidate_for_method(all_candidates, Method.INSTALLMENTS)
-    best_wait = best_candidate_for_method(all_candidates, Method.WAIT)
+                                         baseline.earliest_date_for_full_payment,
+                                         unresolved=unresolved))
 
     # official ranking across all recommendable candidates
     ranked = rank_candidates(all_candidates)
@@ -70,7 +71,7 @@ def plan_request(profile: FinancialProfile, request: Request,
     reason_codes: list[str] = []
     if selected is None:
         for c in all_candidates:
-            if c.rejection_reason:
+            if c.rejection_reason and c.rejection_reason not in reason_codes:
                 reason_codes.append(c.rejection_reason)
         reasons = tuple(reason_codes[:5]) or ("no safe eligible deadline-completing candidate",)
         return Decision(

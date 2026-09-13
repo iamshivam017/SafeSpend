@@ -32,9 +32,13 @@ from .spending_changes import apply_changes_to_flows
 def _evaluate(profile: FinancialProfile, request: Request, flows: list[CashFlow],
               payments: list[Payment], method: Method, changes: tuple = (),
               payment_option_id: str | None = None,
-              diagnostics: tuple[str, ...] = ()) -> PaymentCandidate:
+              diagnostics: tuple[str, ...] = (),
+              unresolved: list | None = None) -> PaymentCandidate:
+    # C1 (review fix): material unresolved evidence MUST reach every candidate
+    # simulation - UNRESOLVED can never silently count as SAFE.
     sim = simulate(profile, request.request_date, flows,
-                   hypothetical_payments=payments, include_trace=False)
+                   hypothetical_payments=payments,
+                   unresolved_evidence=unresolved or None, include_trace=False)
     entries = tuple(PlanEntry(payment_date=p.payment_date, amount=p.amount)
                     for p in payments)
     last = max((p.payment_date for p in payments), default=None)
@@ -59,7 +63,8 @@ def _with_changes(baseline_flows: list[CashFlow],
 
 def full_payment_candidates(profile: FinancialProfile, request: Request,
                             baseline_flows: list[CashFlow],
-                            change_sets: list[tuple[ChangeAction, ...]]) -> list[PaymentCandidate]:
+                            change_sets: list[tuple[ChangeAction, ...]],
+                            unresolved: list | None = None) -> list[PaymentCandidate]:
     """Full payment today: baseline candidate + spending-change rescues."""
     out = []
     if Method.FULL_PAYMENT.value not in profile.payment_methods_user_will_consider:
@@ -72,21 +77,22 @@ def full_payment_candidates(profile: FinancialProfile, request: Request,
     # baseline (no changes)
     out.append(_evaluate(profile, request, baseline_flows,
                          [Payment(request.request_date, request.requested_amount)],
-                         Method.FULL_PAYMENT, ()))
+                         Method.FULL_PAYMENT, (), unresolved=unresolved))
     # rescued by spending changes (baseline full-today is expected unsafe here)
     for changes in change_sets:
         if not changes:
             continue
         out.append(_evaluate(profile, request, _with_changes(baseline_flows, changes),
                              [Payment(request.request_date, request.requested_amount)],
-                             Method.FULL_PAYMENT, changes))
+                             Method.FULL_PAYMENT, changes, unresolved=unresolved))
     return out
 
 
 def partial_payment_candidate(profile: FinancialProfile, request: Request,
                               baseline_flows: list[CashFlow], asp: Decimal,
                               earliest: date | None,
-                              change_sets: list[tuple[ChangeAction, ...]]) -> list[PaymentCandidate]:
+                              change_sets: list[tuple[ChangeAction, ...]],
+                              unresolved: list | None = None) -> list[PaymentCandidate]:
     """Partial payment: exactly two payments (official formula), no option match."""
     if Method.PARTIAL_PAYMENT.value not in profile.payment_methods_user_will_consider:
         return [PaymentCandidate(method=Method.PARTIAL_PAYMENT, payments=(),
@@ -107,14 +113,15 @@ def partial_payment_candidate(profile: FinancialProfile, request: Request,
     payments = [Payment(request.request_date, asp),
                 Payment(earliest, remainder)]
     out = [_evaluate(profile, request, baseline_flows, payments,
-                     Method.PARTIAL_PAYMENT, ())]
+                     Method.PARTIAL_PAYMENT, (), unresolved=unresolved)]
     # spending-change rescue when the unchanged partial schedule is not safe
     if out[0].sim_state is not SafetyState.SAFE:
         for changes in change_sets:
             if not changes:
                 continue
             out.append(_evaluate(profile, request, _with_changes(baseline_flows, changes),
-                                 payments, Method.PARTIAL_PAYMENT, changes))
+                                 payments, Method.PARTIAL_PAYMENT, changes,
+                                 unresolved=unresolved))
     return out
 
 
@@ -122,7 +129,8 @@ def installment_candidates(profile: FinancialProfile, request: Request,
                            baseline_flows: list[CashFlow],
                            options: list,
                            change_sets: list[tuple[ChangeAction, ...]],
-                           max_installment_months: int | None) -> list[PaymentCandidate]:
+                           max_installment_months: int | None,
+                           unresolved: list | None = None) -> list[PaymentCandidate]:
     """One candidate per eligible SUPPLIED installment option (exact reproduction)."""
     out = []
     if Method.INSTALLMENTS.value not in profile.payment_methods_user_will_consider:
@@ -137,6 +145,22 @@ def installment_candidates(profile: FinancialProfile, request: Request,
         if option.payment_method.value != "installments":
             continue
         freq = option.payment_frequency_days
+        if freq is not None and freq <= 0:
+            out.append(PaymentCandidate(
+                method=Method.INSTALLMENTS, payments=(),
+                rejection_reason=f"{option.payment_option_id}: non-positive frequency"))
+            continue
+        if option.payment_amount is None or option.payment_amount <= 0:
+            out.append(PaymentCandidate(
+                method=Method.INSTALLMENTS, payments=(),
+                rejection_reason=f"{option.payment_option_id}: non-positive payment amount"))
+            continue
+        if option.first_payment_date < request.request_date:
+            out.append(PaymentCandidate(
+                method=Method.INSTALLMENTS, payments=(),
+                rejection_reason=f"{option.payment_option_id}: first_payment_date before "
+                                 f"request_date"))
+            continue
         if freq is None or option.number_of_payments < 2:
             out.append(PaymentCandidate(
                 method=Method.INSTALLMENTS, payments=(),
@@ -160,14 +184,16 @@ def installment_candidates(profile: FinancialProfile, request: Request,
             continue
         payments = [Payment(d, option.payment_amount) for d in dates]
         candidates = [_evaluate(profile, request, baseline_flows, payments,
-                                Method.INSTALLMENTS, (), option.payment_option_id)]
+                                Method.INSTALLMENTS, (), option.payment_option_id,
+                                unresolved=unresolved)]
         if candidates[0].sim_state is not SafetyState.SAFE:
             for changes in change_sets:
                 if not changes:
                     continue
                 candidates.append(_evaluate(
                     profile, request, _with_changes(baseline_flows, changes),
-                    payments, Method.INSTALLMENTS, changes, option.payment_option_id))
+                    payments, Method.INSTALLMENTS, changes, option.payment_option_id,
+                    unresolved=unresolved))
         out.extend(candidates)
     if not out:
         out = [PaymentCandidate(method=Method.INSTALLMENTS, payments=(),
@@ -176,7 +202,8 @@ def installment_candidates(profile: FinancialProfile, request: Request,
 
 
 def wait_candidate(profile: FinancialProfile, request: Request,
-                   baseline_flows: list[CashFlow], earliest: date | None) -> list[PaymentCandidate]:
+                   baseline_flows: list[CashFlow], earliest: date | None,
+                   unresolved: list | None = None) -> list[PaymentCandidate]:
     """Wait: single payment of the full amount on the official earliest date."""
     if Method.FULL_PAYMENT.value not in profile.payment_methods_user_will_consider:
         return [PaymentCandidate(method=Method.WAIT, payments=(),
@@ -188,4 +215,5 @@ def wait_candidate(profile: FinancialProfile, request: Request,
         return [PaymentCandidate(method=Method.WAIT, payments=(),
                                  rejection_reason="earliest is today; wait is meaningless")]
     payments = [Payment(earliest, request.requested_amount)]
-    return [_evaluate(profile, request, baseline_flows, payments, Method.WAIT, ())]
+    return [_evaluate(profile, request, baseline_flows, payments, Method.WAIT, (),
+                      unresolved=unresolved)]

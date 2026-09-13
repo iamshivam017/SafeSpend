@@ -48,21 +48,20 @@ def eligible_actions(pattern, source_events: list[FinancialEvent],
     floors = [e.minimum_allowed_amount for e in source_events
               if e.minimum_allowed_amount is not None]
     min_allowed = max(floors) if floors else Decimal("0")
-    pattern_key = (category, "debit")
-
     can_stop = (flex in ("stoppable", "reducible_or_stoppable")
                 and category in profile.expense_categories_user_is_willing_to_stop)
     can_reduce = (flex in ("reducible", "reducible_or_stoppable")
                   and category in profile.expense_categories_user_is_willing_to_reduce)
 
+    series_ids = frozenset(e.event_id for e in source_events)
     if can_stop:
         actions.append(ChangeAction(
             action="stop", event_id=event_id, new_amount=None, category=category,
-            pattern_key=pattern_key, monthly_gain=pattern.amount))
+            series_ids=series_ids, monthly_gain=pattern.amount))
     if can_reduce and pattern.amount > min_allowed:
         actions.append(ChangeAction(
             action="reduce_to", event_id=event_id, new_amount=min_allowed,
-            category=category, pattern_key=pattern_key,
+            category=category, series_ids=series_ids,
             monthly_gain=pattern.amount - min_allowed))
     return actions
 
@@ -78,31 +77,31 @@ def enumerate_actions(projected_patterns: list, source_events_by_pattern: dict,
     return actions
 
 
-def _pattern_key_of_flow(f: CashFlow) -> tuple | None:
-    if f.basis == "recurring_projection":
-        return (f.category, f.direction_value)
-    return None
-
-
 def apply_changes_to_flows(flows: list[CashFlow],
                            changes: tuple[ChangeAction, ...]) -> list[CashFlow]:
     """Apply stop/reduce_to actions to projected recurring flows only.
 
+    Changes are keyed by the SERIES (source_event_ids), never by category:
+    stopping/reducing one series must never touch another projected series in
+    the same category (W1 review fix).
     stop      -> projected occurrences of the series are removed
     reduce_to -> occurrence amounts are replaced with the new amount
     Historical flows, provisions, hypothetical payments, and evidence income
     are never touched.
     """
-    stop_keys = {(c.category, "debit") for c in changes if c.action == "stop"}
-    reduce_by_key = {(c.category, "debit"): c.new_amount for c in changes
-                     if c.action == "reduce_to"}
+    stop_ids = {c.series_ids for c in changes if c.action == "stop"}
+    reduce_by_series = {c.series_ids: c.new_amount for c in changes
+                        if c.action == "reduce_to"}
     out: list[CashFlow] = []
     for f in flows:
-        key = _pattern_key_of_flow(f)
-        if key is not None and key in stop_keys:
+        if f.basis != "recurring_projection":
+            out.append(f)
             continue
-        if key is not None and key in reduce_by_key:
-            new_amount = reduce_by_key[key]
+        flow_series = frozenset(f.source_event_ids)
+        if any(flow_series <= s for s in stop_ids):
+            continue
+        if flow_series in reduce_by_series:
+            new_amount = reduce_by_series[flow_series]
             out.append(CashFlow(
                 amount_home=-new_amount if f.direction_value == "debit" else f.amount_home,
                 effective_date=f.effective_date, category=f.category,

@@ -121,11 +121,11 @@ class EarliestTests(unittest.TestCase):
 
 class SpendingChangeTests(unittest.TestCase):
     def test_max_three_and_conflict(self):
-        acts = [ChangeAction("stop", f"e{i}", None, "c", ("c", "debit"), Decimal("0"))
+        acts = [ChangeAction("stop", f"e{i}", None, "c", frozenset({f"e{i}"}), Decimal("0"))
                 for i in range(4)]
         self.assertIsNotNone(validate_change_set(tuple(acts)))
-        pair = (ChangeAction("stop", "e1", None, "c", ("c", "debit"), Decimal("0")),
-                ChangeAction("reduce_to", "e1", Decimal("5"), "c", ("c", "debit"), Decimal("0")))
+        pair = (ChangeAction("stop", "e1", None, "c", frozenset({"e1"}), Decimal("0")),
+                ChangeAction("reduce_to", "e1", Decimal("5"), "c", frozenset({"e1"}), Decimal("0")))
         self.assertIsNotNone(validate_change_set(pair))
 
     def test_bounded_levels(self):
@@ -146,7 +146,7 @@ class SpendingChangeTests(unittest.TestCase):
                           basis="settled", source_event_ids=("s1",),
                           essential=False, flexibility="fixed", certainty="actual",
                           event_type="expense")
-        changes = (ChangeAction("stop", "s1", None, "streaming", ("streaming", "debit"),
+        changes = (ChangeAction("stop", "s1", None, "streaming", frozenset({"s1"}),
                                 Decimal("50")),)
         out = apply_changes_to_flows([f_proj, f_hist], changes)
         self.assertEqual([f for f in out if f.basis == "settled"], [f_hist])
@@ -181,8 +181,8 @@ class RankerTests(unittest.TestCase):
         self.assertIs(ranked[0], clean)
 
     def test_internal_tie_break_only_after_official(self):
-        ch_a = (ChangeAction("stop", "a1", None, "c", ("c", "debit"), Decimal("1")),)
-        ch_b = (ChangeAction("stop", "b1", None, "c", ("c", "debit"), Decimal("1")),)
+        ch_a = (ChangeAction("stop", "a1", None, "c", frozenset({"a1"}), Decimal("1")),)
+        ch_b = (ChangeAction("stop", "b1", None, "c", frozenset({"b1"}), Decimal("1")),)
         cand_a = self._cand(Method.FULL_PAYMENT, Decimal("100"), changes=ch_a)
         cand_b = self._cand(Method.FULL_PAYMENT, Decimal("100"), changes=ch_b)
         ranked = rank_candidates([cand_b, cand_a])

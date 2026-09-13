@@ -104,16 +104,29 @@ def main(argv: list[str] | None = None) -> int:
              else "REVIEW"))
     if args.json:
         import json
+        from datetime import date as _date
+        from decimal import Decimal as _Decimal
         from pathlib import Path
         from ..config import REPO_ROOT
+
+        def _jsonable(value):
+            if isinstance(value, _Decimal):
+                return str(value)
+            if isinstance(value, _date):
+                return value.isoformat()
+            if isinstance(value, (list, tuple)):
+                return [_jsonable(v) for v in value]
+            if isinstance(value, dict):
+                return {k: _jsonable(v) for k, v in value.items()}
+            return value
+
         out_path = Path(args.json).resolve()
         if not out_path.is_relative_to(REPO_ROOT.resolve()):
             print(f"refusing to write outside the repository: {out_path}", file=sys.stderr)
             return 2
         out_path.write_text(json.dumps(
             {"field_matches": dict(matches),
-             "rows": [{k: (str(v) if not isinstance(v, (dict, list, type(None))) else v)
-                       for k, v in r.items()} for r in rows]}, indent=2),
+             "rows": [{k: _jsonable(v) for k, v in r.items()} for r in rows]}, indent=2),
             encoding="utf-8")
         print(f"JSON results written to {out_path}")
     return 0
