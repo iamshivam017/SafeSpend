@@ -9,6 +9,7 @@ Run from the repository root:
     python code/main.py
     python code/main.py --selfcheck
     python code/main.py --diagnose
+    python code/main.py --plan        # Phase 3 dry-run: plan 250 requests, no output.csv
 """
 from __future__ import annotations
 
@@ -88,6 +89,44 @@ def _run_diagnose() -> int:
     return 0
 
 
+def _run_plan() -> int:
+    """Phase 3 dry-run: plan every request without writing output.csv."""
+    from collections import Counter
+    from code.evidence.apply import collect_claims, build_request_state
+    from code.evidence.claims import EvidenceClaim
+    from code.planning.planner import plan_for_request
+    import time
+
+    bundle = load_all()
+    problems = validate_relationships(bundle)
+    if problems:
+        print("Structural problems:")
+        for problem in problems:
+            print("  -", problem)
+        return 1
+    indexes = Indexes.build(bundle)
+    claims = collect_claims(bundle)
+    t0 = time.perf_counter()
+    statuses: Counter = Counter()
+    methods: Counter = Counter()
+    planned = 0
+    for request in bundle.requests:
+        try:
+            decision, _facts = plan_for_request(bundle, indexes, request, claims)
+        except SafeSpendError as exc:
+            print(f"{request.request_id}: ERROR {exc}")
+            continue
+        planned += 1
+        statuses[decision.affordability_status.value] += 1
+        methods[decision.recommended_payment_method.value] += 1
+    elapsed = time.perf_counter() - t0
+    print(f"planned {planned}/{len(bundle.requests)} requests in {elapsed:.2f}s "
+          f"(dry run; no output.csv written)")
+    print(f"statuses: {dict(statuses)}")
+    print(f"methods:  {dict(methods)}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if "--selfcheck" in argv:
@@ -95,6 +134,8 @@ def main(argv: list[str] | None = None) -> int:
         return evaluator_main(["--selfcheck"])
     if "--diagnose" in argv:
         return _run_diagnose()
+    if "--plan" in argv:
+        return _run_plan()
     try:
         return _run_foundation()
     except SafeSpendError as exc:

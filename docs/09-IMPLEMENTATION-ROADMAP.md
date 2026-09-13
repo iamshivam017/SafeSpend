@@ -28,7 +28,7 @@ Progress markers: `[ ]` not started, `[~]` in progress, `[x]` complete.
 - Acceptance: zero silent parsing coercion (fail-fast), Decimal everywhere on money.
 - Stop condition: hard-fail behavior proven on malformed input fixture.
 
-## PHASE 2 — Lifecycle resolver and 90-day simulator — `[x]` (2026-09-13: 222 tests; CodeRabbit-reviewed (D20); Phase 2.1: audit 0 contradictions (D6/D10 rev.2, D21/D22); Phase 2.2: classification + coverage UNACCOUNTED=0 (D10 rev.3, D21 rev.2, D23); Phase 2.3: boundary audit (D24 — hypothesis superseded, see Phase 4))
+## PHASE 2 — Lifecycle resolver and 90-day simulator — `[x]` (2026-09-13: 222 tests; CodeRabbit-reviewed (D20); Phase 2.1: audit 0 contradictions (D6/D10 rev.2, D21/D22); Phase 2.2: classification + coverage UNACCOUNTED=0 (D10 rev.3, D21 rev.2, D23); Phase 2.3: boundary audit (D24 — superseded, see Phase 4); Phase 3 planning engine implemented (D8/D9/D27/D28/D29 resolved; planner sample audit: status 19/25, method 21/25, plan 18/25, changes 22/25 — Phase 5 calibration frontier for asp/earliest exact values))
 
 ## PHASE 4 — Evidence resolution — `[x]` (executed early per roadmap correction; 2026-09-13: messages 215/215 parsed deterministically (EN/ID), images 16/16 resolved, evidence applied to finance engine, boundary A/B 25/25 PASS, D7 resolved, D24 corrected, D25/D26 recorded)
 - Objective: correct per-user cash reality.

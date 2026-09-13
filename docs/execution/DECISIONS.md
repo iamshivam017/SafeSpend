@@ -78,9 +78,9 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: sample_requests.csv requests 18/23; plan-safety audit (0 contradictions post-change).
 - Revisit condition: contrary hidden-ground-truth evidence in Phase 5/6.
 
-## D7 — Model / provider selection
-- Date: —
-- Decision: **STATUS: OPEN** (TBD — MODEL SELECTION). Requirement: text+image input, JSON- reliable output, low cost; usage metering is provider-agnostic.
+## D7 — Model / provider selection — RESOLVED IN PHASE 4
+- Date: 2026-09-13 (resolved, see D25)
+- Decision: **RESOLVED** — deterministic EN/ID message parser + one-time agent vision for images; no external AI provider; pluggable claim contract retained (full rationale in D25). (TBD — MODEL SELECTION). Requirement: text+image input, JSON- reliable output, low cost; usage metering is provider-agnostic.
 - Context: 215 messages (multilingual) + 16 images to extract; one-time cached pass.
 - Alternatives considered: pending.
 - Chosen approach: pending.
@@ -89,18 +89,25 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: docs/05, docs/08.
 - Revisit condition: decide at Phase 4 start; record price table then.
 
-## D8 — `max_installment_months` month convention
-- Date: —
-- Decision: **STATUS: OPEN**. Working interpretation (docs/03 §E2): option span ≤ N × 30 days; to be pinned by the 25-sample regression before Phase 6.
-- Context: official field semantics not defined beyond rejection rule.
-- Evidence/source: AGENTS.md §6.1; sample user_02 (max 7, accepted 3×30d option).
-- Revisit condition: Phase 5 regression outcome.
+## D8 — `max_installment_months` semantics — RESOLVED IN PHASE 3
+- Date: 2026-09-13 (resolved)
+- Decision: an installment option is eligible when its span — (number_of_payments − 1) × payment_frequency_days, i.e. first-to-last payment duration — is <= max_installment_months × 30 days (30-day month convention). Blank max_installment_months = installments never considered.
+- Status: DECIDED (ENGINEERING DECISION, sample-consistent; implemented in code/planning/candidates.py)
+- Context/analysis: all five installment samples are consistent — chosen option spans ~2 months with max months 7/12/11/3/6, and every rejected alternative's span exceeds the cap (17.6>7, 14.0>12, 18.7>11, 17.6>3, 14.0>6). Note: in these samples the rejected longer options also carry higher totals, so ranking criterion 3 alone agrees; the cap never binds contradictorily. A number-of-payments reading would also fit the five samples — the duration reading matches the field name and is chosen.
+- Alternatives: number-of-payments cap (equally consistent on samples, less literal); calendar-month arithmetic (unnecessary precision).
+- Trade-offs: a hidden weekly-commitment option with span slightly over the cap is excluded — Phase 5 calibration revisits if evidence appears.
+- Evidence/source: AGENTS.md 6.1; request_payment_options.csv; solved samples 02/07/12/17/22.
+- Revisit condition: Phase 5 sample regression contradiction.
 
-## D9 — Reduce-target policy (spending changes)
-- Date: —
-- Decision: **STATUS: OPEN**. Working interpretation (docs/03 §E3): minimal sufficient reduction, floored at `minimum_allowed_amount`; samples O4 show reductions landing exactly on the floor — regression will discriminate minimal-vs-floor.
-- Evidence/source: sample_requests.csv rows 11/21.
-- Revisit condition: Phase 5 regression outcome.
+## D9 — Reduce-target policy — RESOLVED IN PHASE 3
+- Date: 2026-09-13 (resolved)
+- Decision: reduce_to targets EXACTLY the supplied `minimum_allowed_amount` of the referenced series (the sample evidence: event_989 -> 665,950; event_1816 -> 23.50 — both exactly the floor). No intermediate reductions; floor 0 when no floor is supplied.
+- Status: DECIDED (SAMPLE-DERIVED / ENGINEERING DECISION; implemented in code/planning/spending_changes.py::eligible_actions)
+- Alternatives: minimal-sufficient reduction per candidate (more complex, no sample support); reduce-to-zero (rejected — ignores the supplied floor).
+- Why: deterministic, maximizes safety gain, exactly reproduces both official reduce_to samples.
+- Trade-offs: may reduce slightly more than strictly necessary — conservative direction, and ranking criterion 2 (fewer changes) limits usage.
+- Evidence/source: sample_requests.csv requests 11/21; user Phase 3 directive section 15.
+- Revisit condition: Phase 5 calibration evidence.
 
 ## D10 — Recurrence policy — REVISED IN PHASE 2.1/2.2 on sample evidence
 - Date: 2026-09-13 (revision 3)
@@ -177,6 +184,36 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Trade-offs: asp/earliest exact-match accuracy remains bounded; Phase 5 may calibrate a purchase-amount statistic between mean and max.
 - Evidence/source: financial_boundary_audit.py before/after (A/B 22->25 PASS each); request_13 mechanism demo; user Phase 4 addendum.
 - Revisit condition: Phase 5 calibration evidence.
+
+## D27 — Planning money quantum: 0.01, floor (Phase 3)
+- Date: 2026-09-13 (Phase 3)
+- Decision: one centralized planning quantum `PLANNING_QUANTUM = 0.01` (code/planning/models.py). ASP is FLOORED to the quantum (never rounded up — safety first); no other rounding is introduced (D16 unchanged).
+- Status: DECIDED (ENGINEERING DECISION; sample-derived support: all 25 official asp values carry at most 2 decimal places across all five currencies)
+- Alternatives: currency-specific minor units (rejected — IDR has none in the data); no quantization (rejected — unbounded fractional asp from FX arithmetic).
+- Why: exact safety preserved (floor only lowers the payment), matches official precision.
+- Trade-offs: a fractional-cent of headroom is discarded — negligible.
+- Evidence/source: sample_requests.csv asp precision census; user Phase 3 directive.
+- Revisit condition: official evidence of different precision.
+
+## D28 — Unresolved/unsafe ASP fallback: conservative zero (Phase 3)
+- Date: 2026-09-13 (Phase 3)
+- Decision: when material unresolved evidence exists in the horizon, or the no-payment baseline is UNSAFE (even p=0 violates the floor), ASP = 0 with an uncertainty flag — no positive amount is provably safe, so none is asserted. Similarly earliest_date = None (empty) when the horizon is materially unresolved. UNRESOLVED is never treated as SAFE.
+- Status: DECIDED (ENGINEERING DECISION, directive Part 4; request_14 is the regression fixture — childcare without amount)
+- Alternatives: asserting asp from partial information (rejected — falsely precise); treating unresolved as safe (forbidden).
+- Why: the required numeric output needs a value; zero is the only defensible conservative one.
+- Trade-offs: asp=0 for unresolved users scores 0 on those asp cells — accepted as honest.
+- Evidence/source: user Phase 3 directive sections 4/33; request_14 evidence trace.
+- Revisit condition: Phase 4 extension resolves the unknown amounts.
+
+## D29 — Planner architecture and ASP/earliest derivation (Phase 3)
+- Date: 2026-09-13 (Phase 3)
+- Decision: the planner (`code/planning/`) computes baseline fields by exact derivation with simulator verification, not by search: (a) paying p on request_date shifts every EOD balance by -p, so ASP = clamp(min_EOD_balance_without_payment - floor, 0, requested), floored to the 0.01 quantum (D27) and verified by one simulator run; (b) earliest = the first day d where prefix_min[d-1] >= floor and suffix_min[d] - requested >= floor (prefix/suffix minima of the baseline EOD path), mathematically equivalent to per-date simulation under EOD netting. Both are computed once per request (BaselineMetrics) and NEVER altered by candidates. Spending changes are evaluated by direct simulation of modified flow sets (singles -> pairs -> triples, lazily). Ranking is the official 6-key tuple plus an internal canonicalization applied only after all official keys (fewer changes -> smaller intervention -> lexicographic).
+- Status: DECIDED
+- Alternatives: cent-by-cent bisection ASP search (unnecessary — derivation is exact); per-date full simulation for earliest (equivalent but slower); fitting asp to official values (rejected — D24/D26 information boundary).
+- Why: exactness, speed (250 requests planned in 1.17s dry-run), and provable monotonicity.
+- Trade-offs: asp/earliest values diverge from the official oracle wherever the reference purchase-stream sizing differs (documented, D26; sample audit field matches: status 19/25, method 21/25, plan 18/25, changes 22/25, asp 4/25, earliest 11/25 — Phase 5 calibration frontier).
+- Evidence/source: problem_statement.md; user Phase 3 directive; planner_sample_audit output.
+- Revisit condition: Phase 5 calibration.
 
 ## D22 — Sample-plan safety audit + horizon classification
 - Date: 2026-09-13 (Phase 2.1)
