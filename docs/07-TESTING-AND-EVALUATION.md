@@ -8,13 +8,14 @@ runs. It must pass the relevant validation defined below.
 From the repository root:
 
 ```
-python -m unittest discover -s tests -v      # full suite (205 tests, stdlib unittest)
+python -m unittest discover -s tests -v      # full suite (222 tests, stdlib unittest)
 python code/main.py                          # foundation: load + indexes + structural checks
 python code/main.py --selfcheck              # 25-sample harness self-check (must be 25/25)
 python code/main.py --diagnose               # Phase 2 baseline simulation over 25 sample users
 python -m code.evaluation.plan_safety_audit  # Phase 2.1: official plans vs simulator (must be 0 contradictions)
 python -m code.evaluation.essential_coverage_audit  # Phase 2.2: protected-essential coverage (UNACCOUNTED must be 0)
-python -m code.evaluation.financial_boundary_audit  # Phase 2.3: asp/earliest boundary oracle deltas (documented)
+python -m code.evaluation.financial_boundary_audit  # Phase 2.3/4: boundary oracle after evidence (A/B 25/25 PASS)
+python - <<'PY'                                     # Phase 4 usage: from code.evidence.usage import summarize; print(summarize())
 ```
 
 No third-party test runner is required (DECISIONS D15). Layer 4 algorithm evaluation

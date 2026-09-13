@@ -1,0 +1,26 @@
+{
+  "meta": {
+    "extraction_method": "coding-agent vision (one-time, development phase)",
+    "provider": "ZCode interactive agent (GLM)",
+    "api_cost": "0.00 (no external API; agent-assisted transcription cached)",
+    "note": "Amounts transcribed from dataset/media/images/*.png. Never zero-filled on failure; unresolved images stay unresolved."
+  },
+  "resolved": {
+    "event_253":  {"image_id": "image_01", "amount": "4365000",   "currency": "IDR", "field": "net_pay",       "confidence": "high",   "provenance": "PAY SLIP Aug-2019, Net Pay IDR 4,365,000"},
+    "event_1442": {"image_id": "image_02", "amount": "100000",    "currency": "INR", "field": "balance_due",   "confidence": "high",   "provenance": "Rent Receipt 9453, Balance Due 1,00,000.00 (outstanding rent balance)"},
+    "event_1545": {"image_id": "image_03", "amount": "41272",     "currency": "INR", "field": "net_amount",    "confidence": "high",   "provenance": "RIDDHI SIDDHI Bill of Supply 27/02/2026, Net Amount 41272.0"},
+    "event_1700": {"image_id": "image_04", "amount": "2854",      "currency": "INR", "field": "item_bill",     "confidence": "medium", "provenance": "Delivery order, Item Bill 2854.00 (summary partially cropped)"},
+    "event_1786": {"image_id": "image_05", "amount": "704.05",    "currency": "INR", "field": "amount_due",    "confidence": "high",   "provenance": "Airtel bill, Amount due till 06-Feb-2026 = 704.05"},
+    "event_3051": {"image_id": "image_06", "amount": "1995",      "currency": "INR", "field": "total",         "confidence": "high",   "provenance": "Blink Commerce tax invoice, Total 1995.00"},
+    "event_3231": {"image_id": "image_07", "amount": "8528",      "currency": "INR", "field": "grand_total",   "confidence": "high",   "provenance": "NAGARJUNA 1984 KMR tax invoice 29-10-2025, Grand Total 8528"},
+    "event_4535": {"image_id": "image_08", "amount": "15339",     "currency": "INR", "field": "total",         "confidence": "high",   "provenance": "Maintenance receipt Inv 6455, Total 15,339.00"},
+    "event_5170": {"image_id": "image_09", "amount": "723",       "currency": "INR", "field": "total",         "confidence": "high",   "provenance": "Water Bill receipt Inv 6320, Total 723.00"},
+    "event_6033": {"image_id": "image_10", "amount": "79679.26",  "currency": "INR", "field": "balance_due",   "confidence": "high",   "provenance": "Grocery tax invoice, Balance Due 79,679.26"},
+    "event_6859": {"image_id": "image_11", "amount": "3650",      "currency": "INR", "field": "amount_payable","confidence": "high",   "provenance": "Jeevan Hospital provisional bill, Amount Payable 3650.00"},
+    "event_7307": {"image_id": "image_12", "amount": "33.50",     "currency": "USD", "field": "total",         "confidence": "high",   "provenance": "CityCab receipt 01/10/2025, Total 33.50 (cash 40 - change 6.50)"},
+    "event_7941": {"image_id": "image_13", "amount": "2298",      "currency": "INR", "field": "total_paid",    "confidence": "high",   "provenance": "Order details, Total paid 2,298"},
+    "event_9421": {"image_id": "image_14", "amount": "4593",      "currency": "INR", "field": "total",         "confidence": "medium", "provenance": "Handwritten pharmacy bill, TOTAL 4593.00 (item sum ambiguous 4603)"},
+    "event_9806": {"image_id": "image_15", "amount": "9968",      "currency": "INR", "field": "grand_total",   "confidence": "high",   "provenance": "InterGlobe Aviation invoice 07-Jun-2026, Grand Total 9,968.00"},
+    "event_10521": {"image_id": "image_16", "amount": "393.22",   "currency": "INR", "field": "total",         "confidence": "high",   "provenance": "EV charging invoice 03/09/2026, Total 393.22"}
+  }
+}

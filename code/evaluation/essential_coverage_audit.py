@@ -41,11 +41,17 @@ def _request_date_for(user_id: str, bundle) -> object | None:
     return None
 
 
-def classify_coverage(bundle, indexes: Indexes, user_id: str, request_date):
-    """Return {protected_category: classification} for one user."""
+def classify_coverage(bundle, indexes: Indexes, user_id: str, request_date,
+                      all_claims=None):
+    """Return {protected_category: classification} for one user (evidence-aware)."""
+    from ..evidence.apply import build_user_evidence
     profile = indexes.profiles_by_user_id[user_id]
     user_events = indexes.events_by_user_id.get(user_id, [])
-    lifecycle = resolve_lifecycle(user_events, request_date)
+    evidence = build_user_evidence(user_id, request_date,
+                                   all_claims if all_claims is not None else [],
+                                   user_events)
+    lifecycle = resolve_lifecycle(user_events, request_date,
+                                  resolved_amounts=evidence.resolved_amounts)
     patterns = detect_recurring_patterns(user_events)
     projected, _ = project_occurrences(
         patterns, request_date, request_date + timedelta(days=90),
@@ -58,6 +64,7 @@ def classify_coverage(bundle, indexes: Indexes, user_id: str, request_date):
     provision_keys = {c.category for c in provisions}
     unresolved_keys = {u.category for u in lifecycle.unresolved
                        if u.direction.value == "debit"}
+    unresolved_keys.update(u.category for u in evidence.extra_unresolved)
 
     horizon_end = request_date + timedelta(days=90)
     result = {}
@@ -85,22 +92,21 @@ def run_coverage() -> tuple[Counter, list[str], int]:
     if problems:
         raise SafeSpendError("structural problems: " + "; ".join(problems))
     indexes = Indexes.build(bundle)
+    from ..evidence.apply import collect_claims
+    all_claims = collect_claims(bundle)
     counts: Counter = Counter()
     unaccounted: list[str] = []
-    users_seen = 0
-    for request in bundle.requests:
-        users_seen += 1
     for user_id in sorted(indexes.profiles_by_user_id):
         request_date = _request_date_for(user_id, bundle)
         if request_date is None:
             continue  # profile without any request (no forecast context)
-        users_seen += 0
         for category, classification in classify_coverage(
-                bundle, indexes, user_id, request_date).items():
+                bundle, indexes, user_id, request_date,
+                all_claims=all_claims).items():
             counts[classification] += 1
             if classification == "UNACCOUNTED":
                 unaccounted.append(f"{user_id}/{category}")
-    return counts, unaccounted, users_seen
+    return counts, unaccounted, 0
 
 
 def main(argv: list[str] | None = None) -> int:

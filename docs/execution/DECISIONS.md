@@ -147,15 +147,36 @@ when we adopt it as a binding engineering constraint), OBSERVED (from sample dat
 - Evidence/source: user_01/user_13 traces; audit + coverage outputs; user Phase 2.2 directive.
 - Revisit condition: Phase 5 calibration evidence.
 
-## D24 — Boundary oracle audit: official asp/earliest embed the reference implementation's hidden future stream
-- Date: 2026-09-13 (Phase 2.3)
-- Decision: add `code/evaluation/financial_boundary_audit.py` (evaluation-only, AST-isolated) running six boundary tests (A zero-payment baseline, B official-asp payment, C simulator-implied asp vs official, D requested amount at official earliest date, E one-day-before minimality, F full-today consistency vs earliest==request_date) over all 25 solved samples, with per-failure deep traces and cause classification. DOCUMENTED FINDING: exact official asp/earliest values are NOT reproducible from participant-visible data. Evidence: (1) `balance - asp` yields round minimums, implying asp = balance - (reference simulation's minimum balance); (2) six candidate projection policies were tested against the 21 non-capped asp data points — none fits, with deltas in BOTH directions; (3) requests 14/15 have official asp > 0 but zero participant-detectable income history and a participant-side baseline that goes negative — the reference stream must contain future salary events whose history is too short to detect; (4) Tests E/F show the reference stream also includes future sub-monthly purchases we stopped projecting in Phase 2.1 (we are optimistically wrong there) while A/B show we are pessimistically wrong on 14/15 — bidirectional, same root cause. Test D (earliest-date plan safety) passes 17/17 resolvable samples: PLAN-LEVEL safety IS oracle-verified.
-- Status: DECIDED (audit + finding); exact asp semantics remain NOT understood (per directive: do not claim understanding until proven — the audit proves non-reproducibility instead)
-- Alternatives: fitting projection parameters to the 21 asp points (rejected — overfitting to hidden information, prohibited by directive section 18; any fit would be coincidental); changing provision scope (rejected — request_01's budget evidence pins it); suppressing sub-monthly detection further (rejected — breaks nothing and hides traceability).
-- Why: honest separation between what public data determines (plan-level safety, monotonicity, coverage) and what only the reference implementation knows (exact future stream).
-- Trade-offs: asp/earliest exact-match scoring accuracy is bounded by this information gap; Phase 3/5 mitigate by calibrating against the samples and relying on the structural fields (status/method/plan shape) which are far less sensitive.
-- Evidence/source: `financial_boundary_audit.py` output (Test A 22/24, B 22/24, C 3 exact + 21 documented mismatches, D 17/17, E 6 PASS + 11 explained, F 16 PASS + 8 explained); user_14/15 deep traces; user Phase 2.3 directive.
-- Revisit condition: only if organizer material reveals the reference forecast procedure.
+## D24 — Boundary oracle audit — Phase-2.3 hypothesis SUPERSEDED / INCORRECT
+- Date: 2026-09-13 (Phase 2.3; SUPERSEDED same day by Phase 4 evidence discovery)
+- Decision: add `code/evaluation/financial_boundary_audit.py` (evaluation-only, AST-isolated) running six boundary tests (A zero-payment baseline, B official-asp payment, C simulator-implied asp vs official, D requested amount at official earliest date, E one-day-before minimality, F full-today consistency vs earliest==request_date) over all 25 solved samples, with per-failure deep traces and cause classification.
+- Phase-2.3 hypothesis (INCORRECT): the audit initially concluded that exact official asp/earliest embed "the reference implementation's hidden future event stream" and were information-theoretically unreproducible from participant-visible data.
+- Why it was wrong: the Phase-2.3 analysis had not consumed `messages.csv`, which is participant-visible and contains material forward-looking facts. Counter-evidence: user_14's message states "Regular salary of EUR 2717 resumes on 2025-08-15. A new recurring childcare payment begins in the same month."; user_15's message states "Your first salary will be EUR 1661. The confirmed credit date is 2026-01-15." These directly explain the request_14/15 baseline contradictions (positive official asp with no participant-side detected income).
+- CORRECTED CONCLUSION: boundary mismatches remain provisional until participant-visible message/image evidence is resolved. Material future income, amendments, cancellations, delays, and blank amounts may exist in messages/images and must be incorporated before concluding that public financial boundaries cannot be reproduced. (Phase 4 executes evidence resolution BEFORE Phase 3 planning for exactly this reason.)
+- Status: SUPERSEDED (the audit tool and its per-test bookkeeping remain valid regression infrastructure)
+- Evidence/source: messages.csv message_10 (user_14), message_11 (user_15); user Phase 2.3/4 directives.
+- Revisit condition: after Phase 4 evidence application, remaining boundary deltas are re-analyzed before any new conclusion.
+
+## D25 — Evidence pipeline architecture and D7 resolution (Phase 4)
+- Date: 2026-09-13 (Phase 4)
+- Decision: build `code/evidence/` — typed `EvidenceClaim` contract (14 whitelisted claim types), deterministic multilingual (EN/ID) message parser, image-amount cache, evidence-application layer, usage tracking. Architecture: untrusted message/image -> extraction -> strict typed claim -> validation/provenance -> deterministic finance engine. D7 RESOLVED: no external AI provider is used for extraction. Rationale: (a) the message corpus is template-generated and fully covered by whitelisted deterministic patterns — a regex parser is more reproducible, auditable, and free; (b) no external API credentials exist in the environment; (c) the 16 images were transcribed once by the interactive coding agent's own vision during development and cached in `code/evidence/cache.json` (recorded honestly in the usage log as agent-assisted, zero billed cost). The claim schema is model-agnostic: an AI extractor can be plugged in behind the same contract if an API key is provided.
+- Status: DECIDED (D7 closed); message coverage 215/215 parsed (claims or recorded informational notes); image coverage 16/16 resolved (14 high confidence, 2 medium — handwritten/partially cropped); cache keyed by content identity and invalidated on prompt/schema/model change.
+- Injection defense: only whitelisted templates yield claims; instruction-like phrases are flagged and ignored; free-form prose can never enter the finance engine (tested with adversarial phrases).
+- Alternatives: external multimodal LLM extraction (rejected for now — no credentials, non-deterministic, cost; schema ready for it); manual hardcoded amounts (forbidden).
+- Why: reproducibility + auditability + the official untrusted-evidence rule.
+- Trade-offs: unseen message phrasings fall to the unparsed bucket (traceable, conservative); Phase 5 can extend templates.
+- Evidence/source: messages.csv (215 rows), media/images (16), user Phase 4 directive; tests/test_phase4_evidence.py.
+- Revisit condition: corpus phrasing drift, or user supplies an API key for the pluggable AI extractor.
+
+## D26 — Post-evidence boundary status (Phase 4)
+- Date: 2026-09-13
+- Decision: after applying all participant-visible evidence (messages + 16 images), the boundary audit improves from 23 to 20 contradictions: Tests A (zero-payment baseline) and B (official-asp payment) become 25/25 PASS — the request_14/15 contradictions are fully explained by message evidence (salary resumed EUR 2717 on 2025-08-15; first salary EUR 1661 confirmed 2026-01-15). The remaining 20 (Tests E minimality + F full-today consistency) share one demonstrated mechanism: the official earliest dates always fall on PAYDAYS, implying the reference forecast includes sub-monthly purchase outflows that drain the balance before payday. Demonstrated on request_13: projecting sub-monthly purchases reproduces the official pre-payday-unsafe/payday-safe signature, but at our conservative max-last-3 amounts even payday becomes unsafe — the official purchase sizing sits between our policies and is not recoverable. No production change was made: fitting purchase amounts to close E/F would overfit hidden reference internals (prohibited).
+- Status: DECIDED (documented model boundary)
+- Alternatives: re-enabling sub-monthly projections (breaks 7 official plan audits); mean-amount purchases (still contradicts request_01's budget).
+- Why: plan-level safety (the harder, fully-visible oracle) takes precedence; the residual is documented, not hidden.
+- Trade-offs: asp/earliest exact-match accuracy remains bounded; Phase 5 may calibrate a purchase-amount statistic between mean and max.
+- Evidence/source: financial_boundary_audit.py before/after (A/B 22->25 PASS each); request_13 mechanism demo; user Phase 4 addendum.
+- Revisit condition: Phase 5 calibration evidence.
 
 ## D22 — Sample-plan safety audit + horizon classification
 - Date: 2026-09-13 (Phase 2.1)

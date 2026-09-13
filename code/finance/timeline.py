@@ -67,7 +67,7 @@ def _essential(profile: FinancialProfile, category: str) -> bool:
 
 def build_cash_timeline(profile: FinancialProfile, request_date: date,
                         lifecycle: LifecycleResult, patterns: list[RecurringPattern],
-                        indexes: Indexes) -> TimelineResult:
+                        indexes: Indexes, evidence=None) -> TimelineResult:
     """Normalize resolved events + recurrence projections into home-currency flows.
 
     Raises MissingRateError (a DataError) when an in-horizon foreign-currency
@@ -94,6 +94,9 @@ def build_cash_timeline(profile: FinancialProfile, request_date: date,
             flexibility=c.flexibility, certainty="actual", event_type=c.event_type))
 
     user_events = indexes.events_by_user_id.get(profile.user_id, [])
+    if evidence is not None:
+        from ..evidence.apply import apply_evidence_to_patterns  # noqa: F401
+        patterns = apply_evidence_to_patterns(patterns, evidence)
     projected, diagnostics = project_occurrences(
         patterns, request_date, end, lifecycle.cash_events,
         source_events=user_events,
@@ -126,6 +129,33 @@ def build_cash_timeline(profile: FinancialProfile, request_date: date,
             essential=_essential(profile, c.category),
             flexibility=c.flexibility, certainty="projected",
             event_type=c.event_type))
+
+    if evidence is not None and evidence.income_series:
+        from .recurrence import _month_add as month_add
+        for srow in evidence.income_series:
+            amount_home = converter.convert(
+                srow.amount, srow.currency or profile.home_currency,
+                profile.home_currency, on_date=min(srow.first_date, end),
+                context=f"evidence:{srow.source_id}")
+            occurrences = []
+            if request_date <= srow.first_date <= end:
+                occurrences.append(srow.first_date)
+            steps = 1
+            while True:
+                occ = month_add(srow.anchor_day, srow.first_date, steps)
+                if occ > end:
+                    break
+                if occ > request_date:
+                    occurrences.append(occ)
+                steps += 1
+                if steps > 400:
+                    break
+            for occ in sorted(set(occurrences)):
+                flows.append(CashFlow(
+                    amount_home=amount_home, effective_date=occ, category="salary",
+                    direction_value="credit", basis="evidence_income",
+                    source_event_ids=(srow.source_id,), essential=False,
+                    flexibility="fixed", certainty="actual", event_type="income"))
 
     flows.sort(key=lambda f: (f.effective_date, f.amount_home, f.category))
     return TimelineResult(flows=flows, projected_diagnostics=diagnostics)

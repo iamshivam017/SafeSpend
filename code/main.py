@@ -71,23 +71,20 @@ def _run_diagnose() -> int:
           "(no hypothetical payments; labels not read):\n")
     print(f"{'request':<12}{'user':<10}{'state':<11}{'min_proj':>16}{'floor':>14}"
           f"{'flows':>7}{'patterns':>9}{'unres':>6}")
+    from code.evidence.apply import build_request_state
+    all_claims = None
     for sample in bundle.samples:
         request = sample.request
-        profile = indexes.profiles_by_user_id[request.user_id]
         try:
-            user_events = indexes.events_by_user_id.get(request.user_id, [])
-            lifecycle = resolve_lifecycle(user_events, request.request_date)
-            patterns = detect_recurring_patterns(user_events)
-            timeline = build_cash_timeline(profile, request.request_date, lifecycle,
-                                           patterns, indexes)
-            sim = simulate(profile, request.request_date, timeline.flows,
-                           unresolved_evidence=lifecycle.unresolved, include_trace=False)
+            profile, lifecycle, patterns, timeline, evidence, unresolved =                 build_request_state(bundle, indexes, request, all_claims)
         except SafeSpendError as exc:
             print(f"{request.request_id:<12}{request.user_id:<10}ERROR: {exc}")
             continue
+        sim = simulate(profile, request.request_date, timeline.flows,
+                       unresolved_evidence=unresolved, include_trace=False)
         print(f"{request.request_id:<12}{request.user_id:<10}{sim.state.value:<11}"
               f"{sim.minimum_projected_balance:>16}{sim.minimum_balance_required:>14}"
-              f"{len(timeline.flows):>7}{len(patterns):>9}{len(lifecycle.unresolved):>6}")
+              f"{len(timeline.flows):>7}{len(patterns):>9}{len(unresolved):>6}")
     return 0
 
 

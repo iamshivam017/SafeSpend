@@ -65,18 +65,18 @@ class BoundaryAuditor:
         if problems:
             raise SafeSpendError("structural problems: " + "; ".join(problems))
         self.indexes = Indexes.build(self.bundle)
+        from ..evidence.apply import collect_claims
+        self.all_claims = collect_claims(self.bundle)
 
     def _state(self, sample: SampleRequest, payments: list[Payment]):
         request = sample.request
-        profile = self.indexes.profiles_by_user_id[request.user_id]
-        user_events = self.indexes.events_by_user_id.get(request.user_id, [])
-        lifecycle = resolve_lifecycle(user_events, request.request_date)
-        patterns = detect_recurring_patterns(user_events)
-        timeline = build_cash_timeline(profile, request.request_date, lifecycle,
-                                       patterns, self.indexes)
+        from ..evidence.apply import build_request_state
+        profile, lifecycle, patterns, timeline, evidence, unresolved = \
+            build_request_state(self.bundle, self.indexes, request,
+                                all_claims=self.all_claims)
         sim = simulate(profile, request.request_date, timeline.flows,
                        hypothetical_payments=payments,
-                       unresolved_evidence=lifecycle.unresolved, include_trace=False)
+                       unresolved_evidence=unresolved, include_trace=False)
         return sim, lifecycle, timeline
 
     def _resolvable(self, sample: SampleRequest, lifecycle) -> str | None:
@@ -84,10 +84,7 @@ class BoundaryAuditor:
         if sample.recommended_payment_method.value == "not_recommended" \
                 and not sample.earliest_date_for_full_payment:
             return None  # not_affordable: still boundary-testable (asp > 0 possible)
-        if lifecycle.unresolved:
-            return ("unresolved blank-amount evidence: "
-                    + ",".join(u.event_id for u in lifecycle.unresolved))
-        return None
+        return None  # unresolved handling moved into build_request_state
 
     # Test A/B: zero-payment and official-asp payment
     def test_baseline_and_asp(self) -> list[BoundaryRow]:

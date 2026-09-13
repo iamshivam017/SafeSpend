@@ -66,7 +66,7 @@ def _coverage_summary(coverage: dict[str, str]) -> tuple[int, int, int, list[str
     return protected, fixed, reserves, uncovered
 
 
-def _audit_sample(sample: SampleRequest, indexes: Indexes) -> AuditRow:
+def _audit_sample(sample: SampleRequest, indexes: Indexes, all_claims=None) -> AuditRow:
     request = sample.request
     base = AuditRow(request.request_id, sample.affordability_status.value,
                     sample.recommended_payment_method.value, sample.payment_plan,
@@ -88,30 +88,28 @@ def _audit_sample(sample: SampleRequest, indexes: Indexes) -> AuditRow:
                        f"require Phase 3 optimization semantics")
         return base
 
-    profile = indexes.profiles_by_user_id[request.user_id]
-    user_events = indexes.events_by_user_id.get(request.user_id, [])
-    lifecycle = resolve_lifecycle(user_events, request.request_date)
-    patterns = detect_recurring_patterns(user_events)
-
-    # DEFER: unresolved image evidence affects the horizon
-    if lifecycle.unresolved:
-        base.simulator_state, base.verdict = "-", "DEFERRED"
-        base.reason = (f"unresolved blank-amount evidence: "
-                       f"{','.join(u.event_id for u in lifecycle.unresolved)} (Phase 4)")
-        return base
-
+    from ..evidence.apply import build_request_state
     try:
-        timeline = build_cash_timeline(profile, request.request_date, lifecycle,
-                                       patterns, indexes)
+        profile, lifecycle, patterns, timeline, evidence, unresolved = \
+            build_request_state(bundle=None, indexes=indexes, request=request,
+                                all_claims=all_claims)
     except SafeSpendError as exc:
         base.simulator_state, base.verdict = "ERROR", "DEFERRED"
-        base.reason = f"timeline build failed: {exc}"
+        base.reason = f"state build failed: {exc}"
+        return base
+
+    # DEFER: unresolved evidence impact affects the horizon
+    if unresolved:
+        base.simulator_state, base.verdict = "-", "DEFERRED"
+        base.reason = (f"unresolved evidence: "
+                       f"{','.join(u.event_id for u in unresolved)} (Phase 4)")
         return base
 
     from .essential_coverage_audit import classify_coverage
     coverage = classify_coverage(bundle=None, indexes=indexes,
                                  user_id=request.user_id,
-                                 request_date=request.request_date)
+                                 request_date=request.request_date,
+                                 all_claims=all_claims)
     (base.protected_categories, base.fixed_essentials_projected,
      base.variable_essential_reserves, uncovered) = _coverage_summary(coverage)
     if uncovered:
@@ -139,7 +137,9 @@ def run_audit() -> list[AuditRow]:
     if problems:
         raise SafeSpendError("structural problems: " + "; ".join(problems))
     indexes = Indexes.build(bundle)
-    return [_audit_sample(s, indexes) for s in bundle.samples]
+    from ..evidence.apply import collect_claims
+    all_claims = collect_claims(bundle)
+    return [_audit_sample(s, indexes, all_claims) for s in bundle.samples]
 
 
 def main(argv: list[str] | None = None) -> int:
