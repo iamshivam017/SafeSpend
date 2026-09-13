@@ -77,7 +77,10 @@ class BoundaryAuditRunTests(unittest.TestCase):
         from code.evaluation.financial_boundary_audit import BoundaryAuditor
         auditor = BoundaryAuditor()
         rows = auditor.test_baseline_and_asp() + auditor.test_earliest()
-        self.assertEqual(len(rows), 25 * 6)
+        # 25 x 6 minus one skipped Test C: request_14's baseline is UNRESOLVED
+        # (childcare evidence without amount), and an unresolved baseline has no
+        # deterministically measurable headroom
+        self.assertEqual(len(rows), 25 * 6 - 1)
         counts = {}
         for row in rows:
             counts[row.verdict] = counts.get(row.verdict, 0) + 1
